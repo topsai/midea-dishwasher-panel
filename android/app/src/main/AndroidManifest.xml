@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 <uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 <application android:label="洗碗机面板" android:allowBackup="false" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:supportsRtl="true">
+<uses-library android:name="android.test.runner" android:required="false"/>
 </application></manifest>
-
