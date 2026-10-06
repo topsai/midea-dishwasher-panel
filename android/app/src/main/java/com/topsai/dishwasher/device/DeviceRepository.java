@@ -5,7 +5,7 @@ public class DeviceRepository {
  public interface Listener{void onUpdate(Snapshot snapshot);}public interface SessionFactory{DeviceSession open(DeviceConfig config);}
  public static final class Snapshot{
   public final DishwasherState state;public final boolean connected,busy;public final long updatedAtMillis;public final String message;
-  Snapshot(DishwasherState s,boolean c,boolean b,long t,String m){state=s;connected=c;busy=b;updatedAtMillis=t;message=m;}
+  public Snapshot(DishwasherState s,boolean c,boolean b,long t,String m){state=s;connected=c;busy=b;updatedAtMillis=t;message=m;}
  }
  private final Executor callbacks;private final Listener listener;private final SessionFactory factory;
  private final ScheduledExecutorService network=Executors.newSingleThreadScheduledExecutor();
@@ -60,4 +60,3 @@ public class DeviceRepository {
   callbacks.execute(()->{synchronized(DeviceRepository.this){if(g!=generation)return;listener.onUpdate(snapshot);}});
  }
 }
-
