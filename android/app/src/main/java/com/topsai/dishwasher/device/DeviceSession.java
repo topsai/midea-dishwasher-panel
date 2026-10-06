@@ -19,15 +19,23 @@ public class DeviceSession {
   }return received.removeFirst();
  }
  public DishwasherState query()throws IOException{
-  send(E1Protocol.query(config.deviceId));long deadline=System.nanoTime()+4000000000L;
+  // Discard statuses received before this query. Keep partial framing intact,
+  // but skip its eventual completion so old fragments cannot become fresh data.
+  while(!received.isEmpty())codec.decode(received.removeFirst());
+  Socket s=socket;if(s==null||closed)throw new IOException("session closed");
+  InputStream input=s.getInputStream();int drained=0;
+  while(input.available()>0){byte[] chunk=new byte[Math.min(4096,input.available())];int n=input.read(chunk);if(n<0)throw new EOFException();drained+=n;if(drained>65543)throw new IOException("receive backlog too large");for(byte[] frame:frames.feed(Arrays.copyOf(chunk,n)))codec.decode(frame);}
+  boolean skipPartial=frames.hasIncompleteFrame();
+  send(E1Protocol.query(config.deviceId));long deadline=System.nanoTime()+4000000000L;DishwasherState latest=null;
   while(true){
    if(System.nanoTime()>deadline)throw new SocketTimeoutException();
-   byte[] frame=readFrame(deadline);if((frame[5]&15)!=3)throw new IOException("unexpected response type");byte[] payload=codec.decode(frame);
+   byte[] frame=readFrame(deadline);if((frame[5]&15)!=3)throw new IOException("unexpected response type");byte[] payload=codec.decode(frame);if(skipPartial){skipPartial=false;continue;}
    if(payload.length>=4&&payload[0]==0x5a&&payload[1]==0x5a){
-    int type=(payload[2]&255)|((payload[3]&255)<<8);if(type==0x1001||type==1)continue;
+    int type=(payload[2]&255)|((payload[3]&255)<<8);if(type==0x1001||type==1){if(latest!=null&&received.isEmpty())return latest;continue;}
    }
    byte[] msg=E1Protocol.unwrap(payload);int type=msg[9]&255,body=msg[10]&255;
-   if((type==2&&body<=7)||((type==3||type==4)&&body==0))return E1Protocol.parse(payload);
+   if((type==2&&body<=7)||((type==3||type==4)&&body==0))latest=E1Protocol.parse(payload);
+   if(latest!=null&&received.isEmpty())return latest;
    // Valid command acknowledgements do not count as fresh status.
   }
  }

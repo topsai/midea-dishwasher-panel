@@ -36,4 +36,3 @@ public final class V3Codec {
  public static byte[] concat(byte[]... parts){int n=0;for(byte[]p:parts)n+=p.length;byte[] out=new byte[n];int i=0;for(byte[]p:parts){System.arraycopy(p,0,out,i,p.length);i+=p.length;}return out;}
  static byte[] hex(String h){byte[] b=new byte[h.length()/2];for(int i=0;i<b.length;i++)b[i]=(byte)Integer.parseInt(h.substring(i*2,i*2+2),16);return b;}
 }
-

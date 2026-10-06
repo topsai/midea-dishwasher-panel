@@ -13,4 +13,3 @@ check(subprocess.check_output(['git','diff','--cached','--binary']),'staged diff
 with zipfile.ZipFile(a.apk) as z:
     for name in z.namelist():check(z.read(name),'APK:'+name)
 print('PASS: tracked source, staged diff and decompressed APK contain no actual Token/Key')
-

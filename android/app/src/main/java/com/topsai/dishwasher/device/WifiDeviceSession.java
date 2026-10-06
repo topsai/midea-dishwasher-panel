@@ -6,4 +6,3 @@ public final class WifiDeviceSession extends DeviceSession {
  public WifiDeviceSession(DeviceConfig config,Network network){super(config);this.network=network;}
  @Override protected Socket openSocket()throws IOException{if(network==null)throw new IOException("Wi-Fi disconnected");return network.getSocketFactory().createSocket();}
 }
-

@@ -19,13 +19,14 @@ with patch('midealan.security.get_random_bytes',lambda n: bytes([0xa5])*n):
     with patch.object(PacketBuilder,'packet_time',staticmethod(lambda: bytes(8))):
         packet=PacketBuilder(123456,msg).finalize()
     response=s.encode_8370(packet,3)
+    with patch.object(PacketBuilder,'packet_time',staticmethod(lambda: bytes(8))):
+        ack=PacketBuilder(123456,b'').finalize(msg_type=0)
+    ack_frame=s.encode_8370(ack,3)
 commands={}
 for name,cls,attr in [('power',MessagePower,'power'),('child_lock',MessageLock,'lock'),('storage',MessageStorage,'storage')]:
     for v in [False,True]:
         c=cls(0); setattr(c,attr,v); commands[name+str(v)]=c.serialize().hex()
 c=MessageWork(0); c.mode=2; commands['mode2']=c.serialize().hex()
-out=dict(key=key.hex(),token=token.hex(),reply=reply.hex(),handshake=handshake.hex(),tcp=tcp.hex(),frame=frame.hex(),query=query.hex(),statusPacket=packet.hex(),statusFrame=response.hex(),commands=commands)
+out=dict(key=key.hex(),token=token.hex(),reply=reply.hex(),handshake=handshake.hex(),tcp=tcp.hex(),frame=frame.hex(),query=query.hex(),statusPacket=packet.hex(),statusFrame=response.hex(),ackFrame=ack_frame.hex(),commands=commands)
 p=Path(__file__).resolve().parents[1]/'app/src/test/resources/vectors.json'; p.parent.mkdir(parents=True,exist_ok=True); p.write_text(json.dumps(out,indent=2)+'\n')
 print('Fictional vectors generated')
-
-

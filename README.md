@@ -59,4 +59,3 @@ Windows 也可双击 `read_temperature.bat`。
 ## Android 应用
 
 原生 Android 客户端位于 android/，手机通过 Wi-Fi 直接连接洗碗机，不依赖电脑或 中转服务。安装、配置和功能范围见 [Android 使用说明](android/README.md)。
-

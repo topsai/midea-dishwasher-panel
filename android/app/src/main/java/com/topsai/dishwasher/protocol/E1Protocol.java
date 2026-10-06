@@ -39,4 +39,3 @@ public final class E1Protocol {
   v.put("time_remaining",(b[6]&255)+(b.length>33?(b[32]&255)*256:0));v.put("progress",pr<progress.length?progress[pr]:"unknown_"+pr);v.put("storage_remaining",b.length>18?b[18]&255:null);v.put("temperature",b[11]&255);v.put("humidity",b.length>33?b[33]&255:null);v.put("waterswitch",(b[4]&4)!=0);v.put("water_lack",(b[5]&128)!=0);v.put("error_code",b[10]&255);v.put("softwater",b[13]&255);v.put("wrong_operation",b[16]&255);v.put("bright",b.length>24?b[24]&255:null);return new DishwasherState(v);
  }
 }
-

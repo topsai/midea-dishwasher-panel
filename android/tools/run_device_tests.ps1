@@ -10,4 +10,3 @@ if ($LASTEXITCODE -ne 0) { throw "Test installation failed" }
 $result = & $Adb shell am instrument -w -r com.topsai.dishwasher.test/android.test.InstrumentationTestRunner
 $result | Write-Output
 if (($result -join "\n") -notmatch 'OK \([0-9]+ tests\)') { throw "Device instrumentation failed" }
-

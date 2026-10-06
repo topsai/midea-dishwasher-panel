@@ -9,4 +9,3 @@ public class DeviceConfigTest{
   for(int i=0;i<fields.length;i++){String json=new JSONObject(fixture()).put(fields[i],values[i]).toString();assertThrows(fields[i],IllegalArgumentException.class,()->DeviceConfig.parse(json));}
  }
 }
-

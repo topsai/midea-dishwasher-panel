@@ -31,4 +31,3 @@ public final class DeviceConfig {
   catch(Exception e){throw new IllegalStateException("配置序列化失败");}
  }
 }
-

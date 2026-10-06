@@ -12,4 +12,3 @@ public final class ControlActions {
  }
  public void startMode(int mode,boolean confirmed){validateMode(mode);if(confirmed)repository.submitMode(mode);}
 }
-

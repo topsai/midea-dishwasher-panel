@@ -15,9 +15,10 @@ public class DeviceRepository {
   stop();config=c;active=true;long g=++generation;message="正在连接";emit(g);
   polling=network.scheduleWithFixedDelay(()->read(g),0,5,TimeUnit.SECONDS);
  }
- public synchronized void stop(){
+ public synchronized void stop(){stop("已停止连接 · 可能过期");}
+ public synchronized void stop(String reason){
   active=false;generation++;if(polling!=null)polling.cancel(false);polling=null;
-  if(session!=null)session.close();session=null;connected=false;busy=false;refreshPending=false;message="已停止连接 · 可能过期";emit(generation);
+  if(session!=null)session.close();session=null;connected=false;busy=false;refreshPending=false;message=reason;emit(generation);
  }
  public synchronized void shutdown(){stop();network.shutdownNow();}
  public synchronized void refresh(){

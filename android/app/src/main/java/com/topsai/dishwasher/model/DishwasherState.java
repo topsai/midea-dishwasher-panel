@@ -8,4 +8,3 @@ public final class DishwasherState {
  public DishwasherState(){this(Collections.emptyMap());}
  public DishwasherState(Map<String,Object> data){Map<String,Object> m=new LinkedHashMap<>();for(String f:FIELDS)m.put(f,data.get(f));values=Collections.unmodifiableMap(m);}
 }
-

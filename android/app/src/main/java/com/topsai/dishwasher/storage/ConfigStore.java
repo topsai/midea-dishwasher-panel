@@ -35,4 +35,3 @@ public class ConfigStore {
   finally{if(!boot.delete())throw new IOException("无法删除临时配对文件");}
  }
 }
-

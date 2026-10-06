@@ -2,6 +2,7 @@ package com.topsai.dishwasher.protocol;
 import java.util.*;
 public final class FrameBuffer {
  private byte[] pending=new byte[0];
+ public boolean hasIncompleteFrame(){return pending.length!=0;}
  public List<byte[]> feed(byte[] chunk){
   byte[] data=V3Codec.concat(pending,chunk);List<byte[]> frames=new ArrayList<>();int offset=0;
   while(data.length-offset>=6){
@@ -13,4 +14,3 @@ public final class FrameBuffer {
   pending=Arrays.copyOfRange(data,offset,data.length);if(pending.length>65543)throw new IllegalArgumentException("接收缓冲过大");return frames;
  }
 }
-

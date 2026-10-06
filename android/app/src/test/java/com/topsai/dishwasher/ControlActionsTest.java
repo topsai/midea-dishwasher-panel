@@ -5,5 +5,3 @@ public class ControlActionsTest{
  @Test public void cancelAndSelectionSendNothing(){Recording r=new Recording();try{ControlActions a=new ControlActions(r);a.selectMode(2);a.setSwitch("power",false,false);a.startMode(2,false);assertTrue(r.commands.isEmpty());a.setSwitch("power",true,true);assertEquals(Arrays.asList("power=true"),r.commands);}finally{r.shutdown();}}
  @Test public void confirmedCommandsUseWhitelist(){Recording r=new Recording();try{ControlActions a=new ControlActions(r);a.setSwitch("power",true,true);a.setSwitch("child_lock",false,true);a.setSwitch("storage",true,true);a.startMode(2,true);assertEquals(Arrays.asList("power=true","child_lock=false","storage=true","mode=2"),r.commands);assertThrows(IllegalArgumentException.class,()->a.setSwitch("dry",true,true));assertThrows(IllegalArgumentException.class,()->a.startMode(0,true));assertThrows(IllegalArgumentException.class,()->a.startMode(99,true));}finally{r.shutdown();}}
 }
-
-

@@ -9,4 +9,3 @@ adb('shell','run-as','com.topsai.dishwasher','mkdir','-p','files')
 adb('shell','run-as com.topsai.dishwasher sh -c "cat > files/bootstrap.json"',input=data)
 adb('shell','am','start','-n','com.topsai.dishwasher/.ui.MainActivity',stdout=subprocess.DEVNULL)
 print('Pairing JSON imported privately; app encrypts it and deletes bootstrap.json on startup')
-

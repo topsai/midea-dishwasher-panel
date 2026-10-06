@@ -5,16 +5,16 @@ import com.topsai.dishwasher.device.*;import com.topsai.dishwasher.model.*;impor
 public class MainActivity extends Activity implements DeviceRepository.Listener {
  public static final int ID_PARAMETER_TABLE=2000,ID_MODE=3000,ID_START=3001;
  private static final int BG=0xfff2f5f8,INK=0xff172b43,MUTED=0xff66778a,BLUE=0xff2266d5,GREEN=0xff168365;
- private final Handler main=new Handler(Looper.getMainLooper());private final ExecutorService fileWork=Executors.newSingleThreadExecutor();
- private ConfigStore store;private DeviceConfig config;private DeviceRepository repository;private ControlActions actions;private DeviceRepository.Snapshot snapshot;
+ private final Handler main=new Handler(Looper.getMainLooper());
+ private ConfigController configController;private final ConfigController.Listener configListener=this::configChanged;private DeviceConfig config;private DeviceRepository repository;private ControlActions actions;private DeviceRepository.Snapshot snapshot;
  private TextView connection,updated,configSummary;private final TextView[] metrics=new TextView[4],rawRows=new TextView[24];private LinearLayout[] pages;private final List<View> controls=new ArrayList<>();private final Map<String,TextView> switchValues=new LinkedHashMap<>();
  private Spinner modes;private List<Integer> modeCodes;private EditText address,port;private int page=0,selectedMode=2;private boolean started,destroyed;private String configError;
  private static final String[] FIELD_LABELS={"电源","运行状态","洗涤模式","附加功能码","紫外功能","烘干功能","烘干状态","机门","亮碟剂","洗碗盐","童锁","保管功能","保管运行状态","剩余时间（分钟）","洗涤阶段","保管剩余（小时）","温度（℃）","湿度","水开关","缺水状态","故障码","软水档位","操作错误码","亮碟剂档位"};
  @Override public void onCreate(Bundle saved){
   super.onCreate(saved);getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
   if(saved!=null){page=saved.getInt("page",0);selectedMode=saved.getInt("mode",2);}
-  store=new ConfigStore(this);try{store.consumeDebugBootstrap();config=store.load();}catch(IOException e){configError=e.getMessage();}
-  repository=new DeviceRepository(r->main.post(r),this,c->new WifiDeviceSession(c,findWifi()));actions=new ControlActions(repository);build();
+  configController=ConfigManager.get(this);
+  repository=new DeviceRepository(r->main.post(r),this,c->new WifiDeviceSession(c,findWifi()));actions=new ControlActions(repository);build();configController.subscribe(configListener);
  }
  private int dp(int n){return (int)(n*getResources().getDisplayMetrics().density+0.5f);}
  private TextView text(String s,int size,int color){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);t.setPadding(0,dp(4),0,dp(4));return t;}
@@ -66,15 +66,15 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
  private void updateConfigFields(){if(configSummary==null)return;configSummary.setText(config==null?"尚未导入配对配置":("已配置 · E1/V3 · ID "+config.deviceId));address.setText(config==null?"":config.ipAddress);port.setText(config==null?"6444":String.valueOf(config.port));if(configError!=null)configSummary.setText(configError);}
  private Network findWifi(){ConnectivityManager cm=(ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE);for(Network n:cm.getAllNetworks()){NetworkCapabilities c=cm.getNetworkCapabilities(n);if(c!=null&&c.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))return n;}return null;}
  private void connectIfReady(){
-  if(config==null){connection.setText(configError!=null?configError:"请在「设备」页导入配对文件");return;}
-  if(findWifi()==null){repository.stop();onUpdate(new DeviceRepository.Snapshot(snapshot==null?null:snapshot.state,false,false,snapshot==null?0:snapshot.updatedAtMillis,"Wi-Fi 未连接，请连接洗碗机所在局域网"));return;}
+  if(config==null){repository.stop(configError!=null?configError:"请在「设备」页导入配对文件");return;}
+  if(findWifi()==null){repository.stop("Wi-Fi 未连接，请连接洗碗机所在局域网");return;}
   repository.start(config);
  }
  private void refresh(){if(!started)return;if(snapshot!=null&&snapshot.connected)repository.refresh();else connectIfReady();}
  @Override protected void onStart(){super.onStart();started=true;connectIfReady();}
  @Override protected void onStop(){started=false;repository.stop();super.onStop();}
- @Override protected void onDestroy(){destroyed=true;repository.shutdown();fileWork.shutdownNow();super.onDestroy();}
- @Override protected void onSaveInstanceState(Bundle out){out.putInt("page",page);out.putInt("mode",selectedMode);super.onSaveInstanceState(out);}
+ @Override protected void onDestroy(){destroyed=true;configController.unsubscribe(configListener);repository.shutdown();super.onDestroy();}
+ @Override protected void onSaveInstanceState(Bundle out){int position=modes.getSelectedItemPosition();if(position>=0&&position<modeCodes.size())selectedMode=modeCodes.get(position);out.putInt("page",page);out.putInt("mode",selectedMode);super.onSaveInstanceState(out);}
  @Override public void onUpdate(DeviceRepository.Snapshot s){if(destroyed)return;snapshot=s;render();}
  private String value(String field){Object v=snapshot!=null&&snapshot.state!=null?snapshot.state.values.get(field):null;return v==null?"未上报":translate(v);}
  private void render(){
@@ -93,9 +93,8 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
   try{DeviceConfig next=new DeviceConfig(config.deviceId,address.getText().toString().trim(),Integer.parseInt(port.getText().toString()),config.token,config.key);persist(next);}
   catch(IllegalArgumentException e){Toast.makeText(this,"IP 或端口无效",Toast.LENGTH_LONG).show();}
  }
- private void persist(DeviceConfig next){fileWork.execute(()->{try{store.save(next);main.post(()->configured(next));}catch(IOException e){main.post(()->showError(e.getMessage()));}});}
- private void configured(DeviceConfig next){if(destroyed)return;config=next;configError=null;updateConfigFields();if(started)connectIfReady();Toast.makeText(this,"配置已加密保存",Toast.LENGTH_SHORT).show();}
+ private void persist(DeviceConfig next){configController.save(next);}
+ private void configChanged(DeviceConfig next,String error){if(destroyed)return;config=next;configError=error;updateConfigFields();if(started)connectIfReady();if(error!=null)showError(error);}
  private void showError(String message){if(!destroyed)Toast.makeText(this,message,Toast.LENGTH_LONG).show();}
- @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==10&&result==RESULT_OK&&data!=null&&data.getData()!=null){Uri uri=data.getData();fileWork.execute(()->{try(InputStream in=getContentResolver().openInputStream(uri)){if(in==null)throw new IOException("无法打开配对文件");DeviceConfig next=store.importJson(in);main.post(()->configured(next));}catch(Exception e){main.post(()->showError("导入失败，请检查配对文件的格式与协议版本"));}});}}
+ @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==10&&result==RESULT_OK&&data!=null&&data.getData()!=null){Uri uri=data.getData();ContentResolver resolver=getApplicationContext().getContentResolver();configController.importJson(()->resolver.openInputStream(uri));}}
 }
-

@@ -42,7 +42,7 @@ python tools/scan_secrets.py --config ../dishwasher.json --apk app/build/outputs
 
 ## 本机验收
 
-2026-10-07 在华为 TAS-AN00、Android 12/API 31 上完成安装，Wi-Fi 地址 192.0.2.4，直连洗碗机 192.0.2.7:6444。真实读取温度 26℃、已关机、空闲、剩余 0 分钟。电脑仅用于安装/测试，不作为应用通信中转。
+2026-10-07 在华为 TAS-AN00、Android 12/API 31 上完成安装，Wi-Fi 地址 192.0.2.4，直连洗碗机 192.0.2.7:6444。真实读取温度 26℃、待机/取消、空闲、剩余 0 分钟。电脑仅用于安装/测试，不作为应用通信中转。
 
 单元测试覆盖 Python 协议对照、拆包粘包、认证/摘要失败、白名单控制、缺失值、断线保留旧状态、重复提交和失败写入不重发；手机测试覆盖 Keystore 加密、损坏密文拒绝、24 字段、断线禁用控制和旋转选择恢复。
 
@@ -56,4 +56,3 @@ python tools/scan_secrets.py --config ../dishwasher.json --apk app/build/outputs
 - 保存配置无法解密：重新导入；卸载应用会删除本机配置。
 
 协议实现来源及 MIT 原文见 THIRD_PARTY_NOTICES.md 和 app/src/main/assets/midea-lan-LICENSE.txt。
-
