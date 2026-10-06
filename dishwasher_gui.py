@@ -16,7 +16,7 @@ FIELDS = {
     'additional': '附加功能代码', 'uv': '紫外功能', 'dry': '烘干功能',
     'dry_status': '烘干状态', 'door': '门状态', 'rinse_aid': '漂洗剂不足',
     'salt': '软水盐不足', 'child_lock': '童锁', 'storage': '保管功能',
-    'storage_status': '保管运行状态', 'time_remaining': '洗涤剩余时间',
+    'storage_status': '保管当前运行', 'time_remaining': '洗涤剩余时间',
     'progress': '洗涤阶段', 'storage_remaining': '保管剩余时间',
     'temperature': '温度', 'humidity': '湿度', 'waterswitch': '水路开关',
     'water_lack': '缺水标志', 'error_code': '错误码', 'softwater': '软水盐档位',
@@ -41,6 +41,8 @@ TEXT = {
 def display_value(field, value):
     if value is None:
         return '未上报'
+    if field == 'storage_status' and isinstance(value, bool):
+        return '运行中' if value else '当前未运行'
     if isinstance(value, bool):
         if field == 'door':
             return '打开' if value else '关闭'
@@ -285,7 +287,10 @@ class DishwasherApp:
                     for field, variable in self.metrics.items():
                         variable.set(display_value(field, self.snapshot.get(field)))
                     for field, variable in self.switch_labels.items():
-                        variable.set(f'{FIELDS[field]}：{display_value(field, self.snapshot.get(field))}')
+                        label = f'{FIELDS[field]}：{display_value(field, self.snapshot.get(field))}'
+                        if field == 'storage':
+                            label += f"\n当前动作：{display_value('storage_status', self.snapshot.get('storage_status'))}\n剩余：{display_value('storage_remaining', self.snapshot.get('storage_remaining'))}"
+                        variable.set(label)
                     self.mode_lookup = {f'{TEXT.get(name, name)}  [0x{code:02X}]': code for code, name in self.modes.items() if code != 0}
                     self.mode_combo.configure(values=list(self.mode_lookup))
                     if not self.mode.get():

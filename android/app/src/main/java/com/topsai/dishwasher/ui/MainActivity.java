@@ -9,7 +9,7 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
  private ConfigController configController;private final ConfigController.Listener configListener=this::configChanged;private DeviceConfig config;private DeviceRepository repository;private ControlActions actions;private DeviceRepository.Snapshot snapshot;
  private TextView connection,updated,configSummary;private final TextView[] metrics=new TextView[4],rawRows=new TextView[24];private LinearLayout[] pages;private final List<View> controls=new ArrayList<>();private final Map<String,TextView> switchValues=new LinkedHashMap<>();
  private Spinner modes;private List<Integer> modeCodes;private EditText address,port;private int page=0,selectedMode=2;private boolean started,destroyed;private String configError;
- private static final String[] FIELD_LABELS={"电源","运行状态","洗涤模式","附加功能码","紫外功能","烘干功能","烘干状态","机门","亮碟剂","洗碗盐","童锁","保管功能","保管运行状态","剩余时间（分钟）","洗涤阶段","保管剩余（小时）","温度（℃）","湿度","水开关","缺水状态","故障码","软水档位","操作错误码","亮碟剂档位"};
+ private static final String[] FIELD_LABELS={"电源","运行状态","洗涤模式","附加功能码","紫外功能","烘干功能","烘干状态","机门","亮碟剂","洗碗盐","童锁","保管功能","保管当前运行","剩余时间（分钟）","洗涤阶段","保管剩余（小时）","温度（℃）","湿度","水开关","缺水状态","故障码","软水档位","操作错误码","亮碟剂档位"};
  @Override public void onCreate(Bundle saved){
   super.onCreate(saved);getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
   if(saved!=null){page=saved.getInt("page",0);selectedMode=saved.getInt("mode",2);}
@@ -76,13 +76,13 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
  @Override protected void onDestroy(){destroyed=true;configController.unsubscribe(configListener);repository.shutdown();super.onDestroy();}
  @Override protected void onSaveInstanceState(Bundle out){int position=modes.getSelectedItemPosition();if(position>=0&&position<modeCodes.size())selectedMode=modeCodes.get(position);out.putInt("page",page);out.putInt("mode",selectedMode);super.onSaveInstanceState(out);}
  @Override public void onUpdate(DeviceRepository.Snapshot s){if(destroyed)return;snapshot=s;render();}
- private String value(String field){Object v=snapshot!=null&&snapshot.state!=null?snapshot.state.values.get(field):null;return v==null?"未上报":translate(v);}
+ private String value(String field){Object v=snapshot!=null&&snapshot.state!=null?snapshot.state.values.get(field):null;return field.equals("storage_status")?DishwasherState.storageActivityText(v):v==null?"未上报":translate(v);}
  private void render(){
   if(connection==null)return;boolean connected=snapshot!=null&&snapshot.connected;connection.setText(snapshot==null?"等待连接":snapshot.message);connection.setTextColor(connected?GREEN:MUTED);
   updated.setText(snapshot==null||snapshot.updatedAtMillis==0?"等待设备数据":("更新于 "+new SimpleDateFormat("HH:mm:ss",Locale.CHINA).format(new Date(snapshot.updatedAtMillis))+(connected?"":" · 可能过期")));
   String[] metricFields={"temperature","status","progress","time_remaining"};for(int i=0;i<4;i++){String val=value(metricFields[i]);metrics[i].setText(val+(val.equals("未上报")?"":i==0?" ℃":i==3?" 分钟":""));}
-  for(int i=0;i<24;i++){String field=DishwasherState.FIELDS[i];Object v=snapshot!=null&&snapshot.state!=null?snapshot.state.values.get(field):null;rawRows[i].setText(v==null?"未上报":translate(v)+"  |  原始值: "+v);}
-  for(Map.Entry<String,TextView> e:switchValues.entrySet())e.getValue().setText("设备状态："+value(e.getKey()));
+  for(int i=0;i<24;i++){String field=DishwasherState.FIELDS[i];Object v=snapshot!=null&&snapshot.state!=null?snapshot.state.values.get(field):null;rawRows[i].setText(v==null?"未上报":value(field)+"  |  原始值: "+v);}
+  for(Map.Entry<String,TextView> e:switchValues.entrySet()){String label="设备状态："+value(e.getKey());if(e.getKey().equals("storage")){String remaining=value("storage_remaining");label+="\n当前动作："+value("storage_status")+"\n剩余："+remaining+(remaining.equals("未上报")?"":" 小时");}e.getValue().setText(label);}
   for(View view:controls){boolean available=connected&&!snapshot.busy;if(view.getTag() instanceof String)available=available&&snapshot.state!=null&&snapshot.state.values.get(view.getTag())!=null;view.setEnabled(available);}
  }
  private static String translate(Object v){if(v instanceof Boolean)return (Boolean)v?"开启 / 是":"关闭 / 否";String s=String.valueOf(v);switch(s){case "power_off":return "已关机";case "cancel":return "待机 / 取消";case "delay":return "预约等待";case "running":return "运行中";case "error":return "故障";case "soft_gear":return "软水程序";case "idle":return "空闲";case "pre_wash":return "预洗";case "wash":return "主洗";case "rinse":return "漂洗";case "dry":return "烘干";case "complete":return "完成";default:for(Map.Entry<Integer,String> e:DishwasherState.MODES.entrySet())if(e.getValue().equals(s))return modeName(e.getKey());return s;}}
