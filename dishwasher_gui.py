@@ -178,22 +178,35 @@ class DishwasherApp:
         priority.pack(fill='x', pady=(16, 0))
         self.priority_values = {}
         self.priority_labels = {}
-        for index, field in enumerate(('water_lack', 'storage', 'storage_remaining', 'door')):
+        for index, field in enumerate(('water_lack', 'storage', 'power', 'door')):
             card = ttk.Frame(priority, padding=(16, 12), style='Priority.TFrame')
             card.grid(row=0, column=index, sticky='nsew', padx=(0 if index == 0 else 8, 0))
             priority.columnconfigure(index, weight=1, uniform='priority')
-            ttk.Label(card, text=FIELDS[field], style='PriorityTitle.TLabel', anchor='center', justify='center').pack(fill='x')
+            ttk.Label(card, text='保管' if field == 'storage' else '电源状态' if field == 'power' else FIELDS[field], style='PriorityTitle.TLabel', anchor='center', justify='center').pack(fill='x')
             self.priority_values[field] = tk.StringVar(value='未上报')
             label = ttk.Label(card, textvariable=self.priority_values[field], style='MutedPriority.TLabel', anchor='center', justify='center')
             label.pack(fill='x', pady=(6, 0))
             self.priority_labels[field] = label
-        wash = ttk.Frame(outer, padding=(16, 10), style='Priority.TFrame')
+            if field == 'storage':
+                self.storage_remaining_label = tk.StringVar(value='剩余时间未上报')
+                ttk.Label(card, textvariable=self.storage_remaining_label, style='PriorityTitle.TLabel', anchor='center').pack(fill='x', pady=(4, 0))
+            if field == 'power':
+                self.running_status_label = tk.StringVar(value='运行状态未上报')
+                ttk.Label(card, textvariable=self.running_status_label, style='PriorityTitle.TLabel', anchor='center').pack(fill='x', pady=(4, 0))
+        style.configure('Wash.TFrame', background='#edf4ff')
+        style.configure('WashTitle.TLabel', background='#edf4ff', foreground='#2266d5', font=('Microsoft YaHei UI', 14, 'bold'))
+        style.configure('WashCaption.TLabel', background='#edf4ff', foreground='#66778a')
+        style.configure('Wash.TCombobox', padding=(12, 8), font=('Microsoft YaHei UI', 12))
+        wash = ttk.Frame(outer, padding=(18, 14), style='Wash.TFrame')
         wash.pack(fill='x', pady=(12, 0))
-        ttk.Label(wash, text='启动洗涤', style='PriorityTitle.TLabel', font=('Microsoft YaHei UI', 13, 'bold')).pack(side='left', padx=(0, 16))
+        heading = ttk.Frame(wash, style='Wash.TFrame')
+        heading.pack(side='left', padx=(0, 24))
+        ttk.Label(heading, text='启动洗涤', style='WashTitle.TLabel').pack(anchor='w')
+        ttk.Label(heading, text='请选择本机支持的模式', style='WashCaption.TLabel').pack(anchor='w')
         self.mode = tk.StringVar()
-        self.mode_combo = ttk.Combobox(wash, textvariable=self.mode, state='disabled', width=30)
+        self.mode_combo = ttk.Combobox(wash, textvariable=self.mode, state='disabled', width=24, style='Wash.TCombobox', font=('Microsoft YaHei UI', 12))
         self.mode_combo.pack(side='left', fill='x', expand=True, padx=(0, 16))
-        button = ttk.Button(wash, text='启动所选洗涤程序', command=self.start_wash, style='Start.TButton')
+        button = ttk.Button(wash, text='▶  启动洗涤', command=self.start_wash, style='Start.TButton')
         button.pack(side='right')
         self.controls.append(button)
         metrics = ttk.Frame(outer)
@@ -311,15 +324,21 @@ class DishwasherApp:
                         text = display_value(field, value)
                         if field == 'water_lack' and isinstance(value, bool):
                             text = '缺水' if value else '不缺水'
+                        if field == 'power' and isinstance(value, bool):
+                            text = '已开机' if value else '已关机'
                         variable.set(text)
-                        color = 'Muted' if value is None else 'Warning' if field == 'door' and value is True else 'Alert' if field == 'water_lack' and value is True else 'Good' if (field in ('water_lack', 'door') and value is False) or (field == 'storage' and value is True) else 'Info'
+                        color = 'Muted' if value is None else 'Warning' if field == 'door' and value is True else 'Alert' if field == 'water_lack' and value is True else 'Good' if (field in ('water_lack', 'door') and value is False) or (field in ('storage', 'power') and value is True) else 'Info'
                         self.priority_labels[field].configure(style=f'{color}Priority.TLabel')
+                    running = self.snapshot.get('status')
+                    self.running_status_label.set('运行状态未上报' if running is None else f"运行：{display_value('status', running)}")
+                    remaining = self.snapshot.get('storage_remaining')
+                    self.storage_remaining_label.set('剩余时间未上报' if remaining is None else f'剩余 {remaining} 小时')
                     for field, variable in self.switch_labels.items():
                         label = f'{FIELDS[field]}：{display_value(field, self.snapshot.get(field))}'
                         if field == 'storage':
                             label += f"\n当前动作：{display_value('storage_status', self.snapshot.get('storage_status'))}\n剩余：{display_value('storage_remaining', self.snapshot.get('storage_remaining'))}"
                         variable.set(label)
-                    self.mode_lookup = {f'{TEXT.get(name, name)}  [0x{code:02X}]': code for code, name in self.modes.items() if code != 0}
+                    self.mode_lookup = {f'{TEXT.get(name, name)}': code for code, name in self.modes.items() if code != 0}
                     self.mode_combo.configure(values=list(self.mode_lookup))
                     if not self.mode.get():
                         for label, code in self.mode_lookup.items():
