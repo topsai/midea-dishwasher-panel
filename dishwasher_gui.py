@@ -182,10 +182,10 @@ class DishwasherApp:
             card = ttk.Frame(priority, padding=(16, 12), style='Priority.TFrame')
             card.grid(row=0, column=index, sticky='nsew', padx=(0 if index == 0 else 8, 0))
             priority.columnconfigure(index, weight=1, uniform='priority')
-            ttk.Label(card, text=FIELDS[field], style='PriorityTitle.TLabel').pack(anchor='w')
+            ttk.Label(card, text=FIELDS[field], style='PriorityTitle.TLabel', anchor='center', justify='center').pack(fill='x')
             self.priority_values[field] = tk.StringVar(value='未上报')
-            label = ttk.Label(card, textvariable=self.priority_values[field], style='MutedPriority.TLabel')
-            label.pack(anchor='w', pady=(6, 0))
+            label = ttk.Label(card, textvariable=self.priority_values[field], style='MutedPriority.TLabel', anchor='center', justify='center')
+            label.pack(fill='x', pady=(6, 0))
             self.priority_labels[field] = label
         wash = ttk.Frame(outer, padding=(16, 10), style='Priority.TFrame')
         wash.pack(fill='x', pady=(12, 0))
