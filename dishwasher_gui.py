@@ -206,9 +206,17 @@ class DishwasherApp:
         self.mode = tk.StringVar()
         self.mode_combo = ttk.Combobox(wash, textvariable=self.mode, state='disabled', width=24, style='Wash.TCombobox', font=('Microsoft YaHei UI', 12))
         self.mode_combo.pack(side='left', fill='x', expand=True, padx=(0, 16))
-        button = ttk.Button(wash, text='▶  启动洗涤', command=self.start_wash, style='Start.TButton')
-        button.pack(side='right')
+        actions = ttk.Frame(wash, style='Wash.TFrame')
+        actions.pack(side='right')
+        button = ttk.Button(actions, text='▶  启动洗涤', command=self.start_wash, style='Start.TButton')
+        button.pack(side='left')
         self.controls.append(button)
+        for value, label in ((True, '开启保管'), (False, '关闭保管')):
+            button = ttk.Button(actions, text=label, command=lambda v=value: self.control('storage', v))
+            button.pack(side='left', padx=(8, 0))
+            self.controls.append(button)
+        self.wash_storage_status = tk.StringVar(value='保管状态未上报')
+        ttk.Label(outer, textvariable=self.wash_storage_status, foreground='#66778a', anchor='e').pack(fill='x', pady=(4, 0))
         metrics = ttk.Frame(outer)
         metrics.pack(fill='x', pady=16)
         self.metrics = {}
@@ -227,7 +235,7 @@ class DishwasherApp:
         left = ttk.LabelFrame(body, text='设备控制', padding=14)
         left.grid(row=0, column=0, sticky='nsew', padx=(0, 16))
         self.switch_labels = {}
-        for field in ('power', 'child_lock', 'storage'):
+        for field in ('power', 'child_lock'):
             self.switch_labels[field] = tk.StringVar(value=f'{FIELDS[field]}：—')
             ttk.Label(left, textvariable=self.switch_labels[field]).pack(anchor='w', pady=(8, 4))
             row = ttk.Frame(left)
@@ -333,6 +341,7 @@ class DishwasherApp:
                     self.running_status_label.set('运行状态未上报' if running is None else f"运行：{display_value('status', running)}")
                     remaining = self.snapshot.get('storage_remaining')
                     self.storage_remaining_label.set('剩余时间未上报' if remaining is None else f'剩余 {remaining} 小时')
+                    self.wash_storage_status.set(f"保管：{display_value('storage', self.snapshot.get('storage'))}  ·  剩余：{display_value('storage_remaining', remaining)}  ·  {display_value('storage_status', self.snapshot.get('storage_status'))}")
                     for field, variable in self.switch_labels.items():
                         label = f'{FIELDS[field]}：{display_value(field, self.snapshot.get(field))}'
                         if field == 'storage':
