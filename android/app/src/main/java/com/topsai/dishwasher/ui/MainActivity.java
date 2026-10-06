@@ -7,7 +7,7 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
  private static final int BG=0xfff2f5f8,INK=0xff172b43,MUTED=0xff66778a,BLUE=0xff2266d5,GREEN=0xff168365;
  private final Handler main=new Handler(Looper.getMainLooper());
  private ConfigController configController;private final ConfigController.Listener configListener=this::configChanged;private DeviceConfig config;private DeviceRepository repository;private ControlActions actions;private DeviceRepository.Snapshot snapshot;
- private TextView connection,updated,configSummary;private final TextView[] metrics=new TextView[4],rawRows=new TextView[24];private LinearLayout[] pages;private final List<View> controls=new ArrayList<>();private final Map<String,TextView> switchValues=new LinkedHashMap<>();
+ private TextView connection,updated,configSummary;private final TextView[] metrics=new TextView[4],rawRows=new TextView[24],priorityValues=new TextView[3];private final LinearLayout[] priorityCards=new LinearLayout[3];private LinearLayout[] pages;private final List<View> controls=new ArrayList<>();private final Map<String,TextView> switchValues=new LinkedHashMap<>();
  private Spinner modes;private List<Integer> modeCodes;private EditText address,port;private int page=0,selectedMode=2;private boolean started,destroyed;private String configError;
  private static final String[] FIELD_LABELS={"电源","运行状态","洗涤模式","附加功能码","紫外功能","烘干功能","烘干状态","机门","亮碟剂","洗碗盐","童锁","保管功能","保管当前运行","剩余时间（分钟）","洗涤阶段","保管剩余（小时）","温度（℃）","湿度","水开关","缺水状态","故障码","软水档位","操作错误码","亮碟剂档位"};
  @Override public void onCreate(Bundle saved){
@@ -35,6 +35,8 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
  }
  private void showPage(int index){page=index;if(pages==null)return;for(int i=0;i<3;i++)((View)pages[i].getParent()).setVisibility(i==index?View.VISIBLE:View.GONE);}
  private void buildStatus(){
+  LinearLayout priority=card(pages[0]);LinearLayout highlights=new LinearLayout(this);priority.addView(highlights);String[] priorityLabels={"缺水状态","保管功能","保管剩余时间"};
+  for(int i=0;i<3;i++){LinearLayout cell=column();cell.setPadding(dp(6),dp(8),dp(6),dp(8));cell.addView(text(priorityLabels[i],11,MUTED));priorityValues[i]=text("未上报",20,INK);priorityValues[i].setTypeface(null,Typeface.BOLD);cell.addView(priorityValues[i]);priorityCards[i]=cell;LinearLayout.LayoutParams layout=new LinearLayout.LayoutParams(0,-1,1);if(i>0)layout.setMargins(dp(4),0,0,0);highlights.addView(cell,layout);}
   LinearLayout panel=card(pages[0]);String[] labels={"温度","运行状态","洗涤阶段","剩余时间"};
   for(int row=0;row<2;row++){LinearLayout line=new LinearLayout(this);for(int col=0;col<2;col++){int i=row*2+col;LinearLayout cell=column();cell.addView(text(labels[i],12,MUTED));metrics[i]=text("未上报",23,INK);metrics[i].setTypeface(null,Typeface.BOLD);cell.addView(metrics[i]);line.addView(cell,new LinearLayout.LayoutParams(0,-2,1));}panel.addView(line);}
   panel.addView(button("立即刷新 / 重连",this::refresh));
@@ -80,6 +82,7 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
  private void render(){
   if(connection==null)return;boolean connected=snapshot!=null&&snapshot.connected;connection.setText(snapshot==null?"等待连接":snapshot.message);connection.setTextColor(connected?GREEN:MUTED);
   updated.setText(snapshot==null||snapshot.updatedAtMillis==0?"等待设备数据":("更新于 "+new SimpleDateFormat("HH:mm:ss",Locale.CHINA).format(new Date(snapshot.updatedAtMillis))+(connected?"":" · 可能过期")));
+  String[] priorityFields={"water_lack","storage","storage_remaining"};for(int i=0;i<3;i++){Object v=snapshot!=null&&snapshot.state!=null?snapshot.state.values.get(priorityFields[i]):null;String label=v==null?"未上报":i==0?(Boolean.TRUE.equals(v)?"缺水":"不缺水"):i==1?(Boolean.TRUE.equals(v)?"开启":"关闭"):v+" 小时";int color=MUTED,bg=0xfff2f5f8;if(connected&&v!=null){if(i==0&&Boolean.TRUE.equals(v)){color=0xffc0392b;bg=0xffffefed;}else if(i==0||i==1&&Boolean.TRUE.equals(v)){color=GREEN;bg=0xffeaf7f1;}else{color=BLUE;bg=0xffedf4ff;}}priorityValues[i].setText(label);priorityValues[i].setTextColor(color);priorityCards[i].setBackground(background(bg));}
   String[] metricFields={"temperature","status","progress","time_remaining"};for(int i=0;i<4;i++){String val=value(metricFields[i]);metrics[i].setText(val+(val.equals("未上报")?"":i==0?" ℃":i==3?" 分钟":""));}
   for(int i=0;i<24;i++){String field=DishwasherState.FIELDS[i];Object v=snapshot!=null&&snapshot.state!=null?snapshot.state.values.get(field):null;rawRows[i].setText(v==null?"未上报":value(field)+"  |  原始值: "+v);}
   for(Map.Entry<String,TextView> e:switchValues.entrySet()){String label="设备状态："+value(e.getKey());if(e.getKey().equals("storage")){String remaining=value("storage_remaining");label+="\n当前动作："+value("storage_status")+"\n剩余："+remaining+(remaining.equals("未上报")?"":" 小时");}e.getValue().setText(label);}
