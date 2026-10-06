@@ -31,5 +31,21 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(gui.display_value('temperature', None), '未上报')
         self.assertEqual(gui.display_value('temperature', 0), '0 °C')
 
+    def test_storage_running_flag_is_not_the_enable_switch(self):
+        self.assertEqual(gui.display_value('storage', True), '开启')
+        self.assertEqual(gui.display_value('storage_status', False), '当前未运行')
+        self.assertEqual(gui.display_value('storage_status', True), '运行中')
+        self.assertEqual(gui.display_value('storage_status', None), '未上报')
+
+    def test_captured_storage_enabled_while_current_action_idle(self):
+        from midealan.devices.e1.message import MessageE1Response
+        off = MessageE1Response(bytes.fromhex('aa24e1c500000000000300010d00008100000000001900040000004800000000000003003c'))
+        on = MessageE1Response(bytes.fromhex('aa24e1c500000000000300010d0000a10000000000190004000000484800000000000300d4'))
+        self.assertFalse(off.storage)
+        self.assertEqual(off.storage_remaining, 0)
+        self.assertTrue(on.storage)
+        self.assertFalse(on.storage_status)
+        self.assertEqual(on.storage_remaining, 72)
+
 if __name__ == '__main__':
     unittest.main()
