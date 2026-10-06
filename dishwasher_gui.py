@@ -157,7 +157,7 @@ class DishwasherApp:
         style.configure('PriorityTitle.TLabel', background='white', foreground='#66778a')
         style.configure('Start.TButton', font=('Microsoft YaHei UI', 12, 'bold'), foreground='white', background='#2266d5', padding=(18, 10))
         style.map('Start.TButton', background=[('disabled', '#a7b6c8'), ('active', '#1854b7')])
-        for name, color in (('Info', '#126dbe'), ('Good', '#168365'), ('Alert', '#c0392b'), ('Muted', '#66778a')):
+        for name, color in (('Info', '#126dbe'), ('Good', '#168365'), ('Alert', '#c0392b'), ('Muted', '#66778a'), ('Warning', '#b86e0a')):
             style.configure(f'{name}Priority.TLabel', font=('Microsoft YaHei UI', 25, 'bold'), background='white', foreground=color)
         style.configure('TButton', padding=(10, 6))
         style.configure('Treeview', rowheight=25, background='white', fieldbackground='white')
@@ -178,7 +178,7 @@ class DishwasherApp:
         priority.pack(fill='x', pady=(16, 0))
         self.priority_values = {}
         self.priority_labels = {}
-        for index, field in enumerate(('water_lack', 'storage', 'storage_remaining')):
+        for index, field in enumerate(('water_lack', 'storage', 'storage_remaining', 'door')):
             card = ttk.Frame(priority, padding=(16, 12), style='Priority.TFrame')
             card.grid(row=0, column=index, sticky='nsew', padx=(0 if index == 0 else 8, 0))
             priority.columnconfigure(index, weight=1, uniform='priority')
@@ -312,7 +312,7 @@ class DishwasherApp:
                         if field == 'water_lack' and isinstance(value, bool):
                             text = '缺水' if value else '不缺水'
                         variable.set(text)
-                        color = 'Muted' if value is None else 'Alert' if field == 'water_lack' and value is True else 'Good' if (field == 'water_lack' and value is False) or (field == 'storage' and value is True) else 'Info'
+                        color = 'Muted' if value is None else 'Warning' if field == 'door' and value is True else 'Alert' if field == 'water_lack' and value is True else 'Good' if (field in ('water_lack', 'door') and value is False) or (field == 'storage' and value is True) else 'Info'
                         self.priority_labels[field].configure(style=f'{color}Priority.TLabel')
                     for field, variable in self.switch_labels.items():
                         label = f'{FIELDS[field]}：{display_value(field, self.snapshot.get(field))}'
