@@ -55,3 +55,8 @@ Windows 也可双击 `read_temperature.bat`。
 - [midea-lan](https://github.com/wuwentao/midea_lan) 2026.9.2
 
 本项目与美的官方无隶属关系。
+
+## Android 应用
+
+原生 Android 客户端位于 android/，手机通过 Wi-Fi 直接连接洗碗机，不依赖电脑或 中转服务。安装、配置和功能范围见 [Android 使用说明](android/README.md)。
+
