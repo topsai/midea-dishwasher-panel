@@ -1,0 +1,12 @@
+{
+  "name": "洗碗机",
+  "device_id": 0,
+  "ip_address": "192.168.1.100",
+  "port": 6444,
+  "token": "",
+  "key": "",
+  "model": "7600V1E0",
+  "subtype": 3,
+  "device_protocol": 3,
+  "customize": ""
+}

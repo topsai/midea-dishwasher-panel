@@ -1,0 +1,6 @@
+dishwasher.json
+.venv/
+__pycache__/
+*.py[cod]
+*.log
+.env
