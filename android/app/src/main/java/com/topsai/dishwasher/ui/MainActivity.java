@@ -8,7 +8,7 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
  private final Handler main=new Handler(Looper.getMainLooper());
  private ConfigController configController;private final ConfigController.Listener configListener=this::configChanged;private DeviceConfig config;private DeviceRepository repository;private ControlActions actions;private DeviceRepository.Snapshot snapshot;
  private TextView connection,updated,configSummary;private final TextView[] metrics=new TextView[4],rawRows=new TextView[24],priorityValues=new TextView[3];private final LinearLayout[] priorityCards=new LinearLayout[3];private LinearLayout[] pages;private final List<View> controls=new ArrayList<>();private final Map<String,TextView> switchValues=new LinkedHashMap<>();
- private Spinner modes;private List<Integer> modeCodes;private EditText address,port;private int page=0,selectedMode=2;private boolean started,destroyed;private String configError;
+ private Spinner modes;private LinearLayout washSpot;private List<Integer> modeCodes;private EditText address,port;private int page=0,selectedMode=2;private boolean started,destroyed;private String configError;
  private static final String[] FIELD_LABELS={"电源","运行状态","洗涤模式","附加功能码","紫外功能","烘干功能","烘干状态","机门","亮碟剂","洗碗盐","童锁","保管功能","保管当前运行","剩余时间（分钟）","洗涤阶段","保管剩余（小时）","温度（℃）","湿度","水开关","缺水状态","故障码","软水档位","操作错误码","亮碟剂档位"};
  @Override public void onCreate(Bundle saved){
   super.onCreate(saved);getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
@@ -37,6 +37,7 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
  private void buildStatus(){
   LinearLayout priority=card(pages[0]);LinearLayout highlights=new LinearLayout(this);priority.addView(highlights);String[] priorityLabels={"缺水状态","保管功能","保管剩余时间"};
   for(int i=0;i<3;i++){LinearLayout cell=column();cell.setPadding(dp(6),dp(8),dp(6),dp(8));cell.addView(text(priorityLabels[i],11,MUTED));priorityValues[i]=text("未上报",20,INK);priorityValues[i].setTypeface(null,Typeface.BOLD);cell.addView(priorityValues[i]);priorityCards[i]=cell;LinearLayout.LayoutParams layout=new LinearLayout.LayoutParams(0,-1,1);if(i>0)layout.setMargins(dp(4),0,0,0);highlights.addView(cell,layout);}
+  washSpot=column();pages[0].addView(washSpot);
   LinearLayout panel=card(pages[0]);String[] labels={"温度","运行状态","洗涤阶段","剩余时间"};
   for(int row=0;row<2;row++){LinearLayout line=new LinearLayout(this);for(int col=0;col<2;col++){int i=row*2+col;LinearLayout cell=column();cell.addView(text(labels[i],12,MUTED));metrics[i]=text("未上报",23,INK);metrics[i].setTypeface(null,Typeface.BOLD);cell.addView(metrics[i]);line.addView(cell,new LinearLayout.LayoutParams(0,-2,1));}panel.addView(line);}
   panel.addView(button("立即刷新 / 重连",this::refresh));
@@ -48,10 +49,11 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
   String[] fields={"power","child_lock","storage"},names={"电源","童锁","保管"};
   for(int i=0;i<3;i++){String field=fields[i],name=names[i];LinearLayout c=card(pages[1]);c.addView(text(name,19,INK));TextView value=text("未上报",13,MUTED);c.addView(value);switchValues.put(field,value);LinearLayout row=new LinearLayout(this);
    Button on=button("开启",()->switchAction(field,true)),off=button("关闭",()->switchAction(field,false));on.setTag(field);off.setTag(field);controls.add(on);controls.add(off);row.addView(on,new LinearLayout.LayoutParams(0,-2,1));row.addView(off,new LinearLayout.LayoutParams(0,-2,1));c.addView(row);}
-  LinearLayout wash=card(pages[1]);wash.addView(text("启动洗涤",19,INK));wash.addView(text("以下为通用 E1 模式，请选择本机实际支持的模式。选择模式不会启动洗涤。",13,MUTED));
+  LinearLayout wash=card(washSpot);wash.addView(text("启动洗涤",19,INK));wash.addView(text("选择本机支持的模式，确认后启动。",12,MUTED));
   modeCodes=new ArrayList<>();List<String> labels=new ArrayList<>();for(Map.Entry<Integer,String> e:DishwasherState.MODES.entrySet())if(e.getKey()!=0){modeCodes.add(e.getKey());labels.add(modeName(e.getKey())+" · "+e.getValue());}
   modes=new Spinner(this);modes.setId(ID_MODE);ArrayAdapter<String> adapter=new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,labels);adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);modes.setAdapter(adapter);modes.setSelection(Math.max(0,modeCodes.indexOf(selectedMode)));modes.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onItemSelected(AdapterView<?> p,View v,int position,long id){selectedMode=modeCodes.get(position);actions.selectMode(selectedMode);}public void onNothingSelected(AdapterView<?> p){}});wash.addView(modes);
-  Button start=button("启动所选程序",()->new AlertDialog.Builder(this).setTitle("确认启动洗涤").setMessage("将立即启动 "+modeName(selectedMode)+"。请确认机门与餐具已准备好。").setNegativeButton("取消",null).setPositiveButton("启动",(d,w)->safe(()->actions.startMode(selectedMode,true))).show());start.setId(ID_START);controls.add(start);wash.addView(start);
+  Button start=button("启动所选程序",()->new AlertDialog.Builder(this).setTitle("确认启动洗涤").setMessage("将立即启动 "+modeName(selectedMode)+"。请确认机门与餐具已准备好。").setNegativeButton("取消",null).setPositiveButton("启动",(d,w)->safe(()->actions.startMode(selectedMode,true))).show());start.setId(ID_START);start.setTextColor(Color.WHITE);start.setBackgroundTintList(android.content.res.ColorStateList.valueOf(BLUE));controls.add(start);wash.addView(start);
+  pages[1].addView(button("选择模式 / 启动洗涤",()->{showPage(0);((ScrollView)pages[0].getParent()).smoothScrollTo(0,0);}));
   LinearLayout note=card(pages[1]);note.addView(text("功能范围",17,INK));note.addView(text("目前支持电源、童锁、保管和洗涤模式启动。独立暂停、预约、独立烘干/紫外控制及耗材档位设置尚未实现。\n\n指令发送完成不代表设备已执行；界面以设备返回状态为准。",13,MUTED));
  }
  private void switchAction(String field,boolean value){
