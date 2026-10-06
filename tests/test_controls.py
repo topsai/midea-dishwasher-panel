@@ -2,6 +2,7 @@
 import importlib.util
 import pathlib
 import unittest
+from unittest.mock import Mock
 
 path = pathlib.Path(__file__).resolve().parents[1] / 'dishwasher_gui.py'
 spec = importlib.util.spec_from_file_location('dishwasher_gui', path)
@@ -9,6 +10,17 @@ gui = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gui)
 
 class CommandTests(unittest.TestCase):
+    def test_storage_toggle_uses_reported_state_and_ignores_unknown(self):
+        app = object.__new__(gui.DishwasherApp)
+        app.control = Mock()
+        for state, target in ((True, False), (False, True)):
+            app.snapshot = {'storage': state}
+            app.toggle_storage()
+            app.control.assert_called_once_with('storage', target)
+            app.control.reset_mock()
+        app.snapshot = {}
+        app.toggle_storage()
+        app.control.assert_not_called()
     def test_read_only_attribute_cannot_be_sent(self):
         with self.assertRaises(ValueError):
             gui.validate_command('temperature', 45, {2: 'strong_wash'})

@@ -197,26 +197,33 @@ class DishwasherApp:
         style.configure('WashTitle.TLabel', background='#edf4ff', foreground='#2266d5', font=('Microsoft YaHei UI', 14, 'bold'))
         style.configure('WashCaption.TLabel', background='#edf4ff', foreground='#66778a')
         style.configure('Wash.TCombobox', padding=(12, 8), font=('Microsoft YaHei UI', 12))
-        wash = ttk.Frame(outer, padding=(18, 14), style='Wash.TFrame')
-        wash.pack(fill='x', pady=(12, 0))
-        heading = ttk.Frame(wash, style='Wash.TFrame')
-        heading.pack(side='left', padx=(0, 24))
-        ttk.Label(heading, text='启动洗涤', style='WashTitle.TLabel').pack(anchor='w')
-        ttk.Label(heading, text='请选择本机支持的模式', style='WashCaption.TLabel').pack(anchor='w')
+        style.configure('Storage.TFrame', background='#eaf7f1')
+        style.configure('StorageTitle.TLabel', background='#eaf7f1', foreground='#168365', font=('Microsoft YaHei UI', 14, 'bold'))
+        style.configure('StorageCaption.TLabel', background='#eaf7f1', foreground='#66778a')
+        action_cards = ttk.Frame(outer)
+        action_cards.pack(fill='x', pady=(12, 0))
+        action_cards.columnconfigure(0, weight=1, uniform='actions')
+        action_cards.columnconfigure(1, weight=1, uniform='actions')
+        wash = ttk.Frame(action_cards, padding=(18, 14), style='Wash.TFrame')
+        wash.grid(row=0, column=0, sticky='nsew', padx=(0, 6))
+        ttk.Label(wash, text='启动洗涤', style='WashTitle.TLabel').pack(anchor='w')
+        ttk.Label(wash, text='请选择本机支持的模式', style='WashCaption.TLabel').pack(anchor='w', pady=(2, 6))
         self.mode = tk.StringVar()
         self.mode_combo = ttk.Combobox(wash, textvariable=self.mode, state='disabled', width=24, style='Wash.TCombobox', font=('Microsoft YaHei UI', 12))
-        self.mode_combo.pack(side='left', fill='x', expand=True, padx=(0, 16))
-        actions = ttk.Frame(wash, style='Wash.TFrame')
-        actions.pack(side='right')
-        button = ttk.Button(actions, text='▶  启动洗涤', command=self.start_wash, style='Start.TButton')
-        button.pack(side='left')
+        self.mode_combo.pack(fill='x', pady=(0, 10))
+        button = ttk.Button(wash, text='▶  启动洗涤', command=self.start_wash, style='Start.TButton')
+        button.pack(fill='x')
         self.controls.append(button)
-        for value, label in ((True, '开启保管'), (False, '关闭保管')):
-            button = ttk.Button(actions, text=label, command=lambda v=value: self.control('storage', v))
-            button.pack(side='left', padx=(8, 0))
-            self.controls.append(button)
+        storage = ttk.Frame(action_cards, padding=(18, 14), style='Storage.TFrame')
+        storage.grid(row=0, column=1, sticky='nsew', padx=(6, 0))
+        ttk.Label(storage, text='保管控制', style='StorageTitle.TLabel').pack(anchor='w')
         self.wash_storage_status = tk.StringVar(value='保管状态未上报')
-        ttk.Label(outer, textvariable=self.wash_storage_status, foreground='#66778a', anchor='e').pack(fill='x', pady=(4, 0))
+        ttk.Label(storage, textvariable=self.wash_storage_status, style='StorageCaption.TLabel', justify='left').pack(fill='x', pady=(8, 12))
+        actions = ttk.Frame(storage, style='Storage.TFrame')
+        actions.pack(fill='x', side='bottom')
+        self.storage_toggle = ttk.Button(actions, text='保管状态未上报', command=self.toggle_storage, style='Start.TButton')
+        self.storage_toggle.pack(fill='x')
+        self.controls.append(self.storage_toggle)
         metrics = ttk.Frame(outer)
         metrics.pack(fill='x', pady=16)
         self.metrics = {}
@@ -274,6 +281,13 @@ class DishwasherApp:
         for button in self.controls:
             button.configure(state='normal' if self.online and not self.busy else 'disabled')
         self.mode_combo.configure(state='readonly' if self.online and not self.busy else 'disabled')
+        current = self.snapshot.get('storage')
+        self.storage_toggle.configure(text='关闭保管' if current is True else '开启保管' if current is False else '保管状态未上报', state='normal' if self.online and not self.busy and type(current) is bool else 'disabled')
+
+    def toggle_storage(self):
+        current = self.snapshot.get('storage')
+        if type(current) is bool:
+            self.control('storage', not current)
 
     def log_message(self, text):
         self.log.configure(state='normal')
@@ -341,7 +355,7 @@ class DishwasherApp:
                     self.running_status_label.set('运行状态未上报' if running is None else f"运行：{display_value('status', running)}")
                     remaining = self.snapshot.get('storage_remaining')
                     self.storage_remaining_label.set('剩余时间未上报' if remaining is None else f'剩余 {remaining} 小时')
-                    self.wash_storage_status.set(f"保管：{display_value('storage', self.snapshot.get('storage'))}  ·  剩余：{display_value('storage_remaining', remaining)}  ·  {display_value('storage_status', self.snapshot.get('storage_status'))}")
+                    self.wash_storage_status.set(f"保管：{display_value('storage', self.snapshot.get('storage'))}\n剩余：{display_value('storage_remaining', remaining)}\n{display_value('storage_status', self.snapshot.get('storage_status'))}")
                     for field, variable in self.switch_labels.items():
                         label = f'{FIELDS[field]}：{display_value(field, self.snapshot.get(field))}'
                         if field == 'storage':

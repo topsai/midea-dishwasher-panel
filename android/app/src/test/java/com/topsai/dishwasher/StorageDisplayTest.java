@@ -6,6 +6,12 @@ import java.nio.charset.StandardCharsets;
 import org.junit.Test;
 import static org.junit.Assert.*;
 public class StorageDisplayTest {
+ @Test public void toggleRequiresReportedBooleanState() {
+  assertEquals(Boolean.FALSE,DishwasherState.storageToggleTarget(true));
+  assertEquals(Boolean.TRUE,DishwasherState.storageToggleTarget(false));
+  assertNull(DishwasherState.storageToggleTarget(null));
+  assertNull(DishwasherState.storageToggleTarget("unknown"));
+ }
  @Test public void capturedEnabledStorageCanBeIdle() throws Exception {
   JSONObject packets=new JSONObject(new String(getClass().getResourceAsStream("/storage-status.json").readAllBytes(),StandardCharsets.UTF_8));
   DishwasherState off=E1Protocol.parse(ProtocolTest.hex(packets.getString("off")));
