@@ -19,7 +19,7 @@ FIELDS = {
     'storage_status': '保管当前运行', 'time_remaining': '洗涤剩余时间',
     'progress': '洗涤阶段', 'storage_remaining': '保管剩余时间',
     'temperature': '温度', 'humidity': '湿度', 'waterswitch': '水路开关',
-    'water_lack': '缺水标志', 'error_code': '错误码', 'softwater': '软水盐档位',
+    'water_lack': '缺水状态', 'error_code': '错误码', 'softwater': '软水盐档位',
     'wrong_operation': '错误操作代码', 'bright': '亮碟剂档位',
 }
 TEXT = {
@@ -153,6 +153,10 @@ class DishwasherApp:
         style.configure('TLabel', background='#eef3f8', foreground='#233047')
         style.configure('Title.TLabel', font=('Microsoft YaHei UI', 21, 'bold'))
         style.configure('Metric.TLabel', font=('Microsoft YaHei UI', 23, 'bold'), foreground='#126dbe')
+        style.configure('Priority.TFrame', background='white')
+        style.configure('PriorityTitle.TLabel', background='white', foreground='#66778a')
+        for name, color in (('Info', '#126dbe'), ('Good', '#168365'), ('Alert', '#c0392b'), ('Muted', '#66778a')):
+            style.configure(f'{name}Priority.TLabel', font=('Microsoft YaHei UI', 25, 'bold'), background='white', foreground=color)
         style.configure('TButton', padding=(10, 6))
         style.configure('Treeview', rowheight=25, background='white', fieldbackground='white')
         style.configure('Treeview.Heading', font=('Microsoft YaHei UI', 10, 'bold'))
@@ -168,6 +172,19 @@ class DishwasherApp:
         ttk.Label(connection, textvariable=self.updated).pack(side='left', padx=18)
         ttk.Button(connection, text='重新连接', command=lambda: self.request('reconnect')).pack(side='right')
         ttk.Button(connection, text='立即刷新', command=lambda: self.request('refresh')).pack(side='right', padx=8)
+        priority = ttk.Frame(outer)
+        priority.pack(fill='x', pady=(16, 0))
+        self.priority_values = {}
+        self.priority_labels = {}
+        for index, field in enumerate(('water_lack', 'storage', 'storage_remaining')):
+            card = ttk.Frame(priority, padding=(16, 12), style='Priority.TFrame')
+            card.grid(row=0, column=index, sticky='nsew', padx=(0 if index == 0 else 8, 0))
+            priority.columnconfigure(index, weight=1, uniform='priority')
+            ttk.Label(card, text=FIELDS[field], style='PriorityTitle.TLabel').pack(anchor='w')
+            self.priority_values[field] = tk.StringVar(value='未上报')
+            label = ttk.Label(card, textvariable=self.priority_values[field], style='MutedPriority.TLabel')
+            label.pack(anchor='w', pady=(6, 0))
+            self.priority_labels[field] = label
         metrics = ttk.Frame(outer)
         metrics.pack(fill='x', pady=16)
         self.metrics = {}
@@ -286,6 +303,14 @@ class DishwasherApp:
                             self.table.insert('', 'end', iid=field, values=row)
                     for field, variable in self.metrics.items():
                         variable.set(display_value(field, self.snapshot.get(field)))
+                    for field, variable in self.priority_values.items():
+                        value = self.snapshot.get(field)
+                        text = display_value(field, value)
+                        if field == 'water_lack' and isinstance(value, bool):
+                            text = '缺水' if value else '不缺水'
+                        variable.set(text)
+                        color = 'Muted' if value is None else 'Alert' if field == 'water_lack' and value is True else 'Good' if (field == 'water_lack' and value is False) or (field == 'storage' and value is True) else 'Info'
+                        self.priority_labels[field].configure(style=f'{color}Priority.TLabel')
                     for field, variable in self.switch_labels.items():
                         label = f'{FIELDS[field]}：{display_value(field, self.snapshot.get(field))}'
                         if field == 'storage':
