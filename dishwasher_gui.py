@@ -157,6 +157,9 @@ class DishwasherApp:
         style.configure('PriorityTitle.TLabel', background='white', foreground='#66778a')
         style.configure('Start.TButton', font=('Microsoft YaHei UI', 12, 'bold'), foreground='white', background='#2266d5', padding=(18, 10))
         style.map('Start.TButton', background=[('disabled', '#a7b6c8'), ('active', '#1854b7')])
+        for name, color, active in [('ConnectedStart.TButton', '#2266d5', '#1854b7'), ('StorageOn.TButton', '#168365', '#116a51'), ('StorageOff.TButton', '#2266d5', '#1854b7')]:
+            style.configure(name, font=('Microsoft YaHei UI', 12, 'bold'), foreground='white', background=color, padding=(18, 10))
+            style.map(name, background=[('disabled', color), ('active', active)], foreground=[('disabled', 'white')])
         for name, color in (('Info', '#126dbe'), ('Good', '#168365'), ('Alert', '#c0392b'), ('Muted', '#66778a'), ('Warning', '#b86e0a')):
             style.configure(f'{name}Priority.TLabel', font=('Microsoft YaHei UI', 25, 'bold'), background='white', foreground=color)
         style.configure('TButton', padding=(10, 6))
@@ -211,7 +214,7 @@ class DishwasherApp:
         self.mode = tk.StringVar()
         self.mode_combo = ttk.Combobox(wash, textvariable=self.mode, state='disabled', width=24, style='Wash.TCombobox', font=('Microsoft YaHei UI', 12))
         self.mode_combo.pack(fill='x', pady=(0, 10))
-        button = ttk.Button(wash, text='▶  启动洗涤', command=self.start_wash, style='Start.TButton')
+        button = self.wash_start = ttk.Button(wash, text='▶  启动洗涤', command=self.start_wash, style='Start.TButton')
         button.pack(fill='x')
         self.controls.append(button)
         storage = ttk.Frame(action_cards, padding=(18, 14), style='Storage.TFrame')
@@ -281,7 +284,9 @@ class DishwasherApp:
         for button in self.controls:
             button.configure(state='normal' if self.online and not self.busy else 'disabled')
         self.mode_combo.configure(state='readonly' if self.online and not self.busy else 'disabled')
+        self.wash_start.configure(style='ConnectedStart.TButton' if self.online else 'Start.TButton')
         current = self.snapshot.get('storage')
+        self.storage_toggle.configure(style=('StorageOn.TButton' if current else 'StorageOff.TButton') if self.online and type(current) is bool else 'Start.TButton')
         self.storage_toggle.configure(text='关闭保管' if current is True else '开启保管' if current is False else '保管状态未上报', state='normal' if self.online and not self.busy and type(current) is bool else 'disabled')
 
     def toggle_storage(self):
