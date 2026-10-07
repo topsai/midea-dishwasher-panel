@@ -185,6 +185,9 @@ class DishwasherApp:
         self.updated = tk.StringVar(value='尚未获取数据')
         ttk.Label(connection, textvariable=self.connection).pack(side='left')
         ttk.Label(connection, textvariable=self.updated).pack(side='left', padx=18)
+        self.power_toggle = ttk.Button(connection, text='电源状态未上报', command=self.toggle_power)
+        self.power_toggle.pack(side='right')
+        self.controls.append(self.power_toggle)
         self.page_container = ttk.Frame(outer)
         self.page_container.pack(fill='both', expand=True, pady=(12, 0))
         self.pages = {name: ttk.Frame(self.page_container) for name in ('home', 'status', 'control', 'device')}
@@ -256,7 +259,7 @@ class DishwasherApp:
         left = ttk.LabelFrame(self.pages['control'], text='设备控制', padding=14)
         left.pack(fill='x')
         self.switch_labels = {}
-        for field in ('power', 'child_lock'):
+        for field in ('child_lock',):
             self.switch_labels[field] = tk.StringVar(value=f'{FIELDS[field]}：—')
             ttk.Label(left, textvariable=self.switch_labels[field]).pack(anchor='w', pady=(8, 4))
             row = ttk.Frame(left)
@@ -326,9 +329,16 @@ class DishwasherApp:
             button.configure(state='normal' if self.online and not self.busy else 'disabled')
         self.mode_combo.configure(state='readonly' if self.online and not self.busy else 'disabled')
         self.wash_start.configure(style='ConnectedStart.TButton' if self.online else 'Start.TButton')
+        power = self.snapshot.get('power')
+        self.power_toggle.configure(text='⏻  关闭电源' if power is True else '⏻  开启电源' if power is False else '电源状态未上报', state='normal' if self.online and not self.busy and type(power) is bool else 'disabled')
         current = self.snapshot.get('storage')
         self.storage_toggle.configure(style=('StorageOn.TButton' if current else 'StorageOff.TButton') if self.online and type(current) is bool else 'Start.TButton')
         self.storage_toggle.configure(text='关闭保管' if current is True else '开启保管' if current is False else '保管状态未上报', state='normal' if self.online and not self.busy and type(current) is bool else 'disabled')
+
+    def toggle_power(self):
+        current = self.snapshot.get('power')
+        if type(current) is bool:
+            self.control('power', not current)
 
     def toggle_storage(self):
         current = self.snapshot.get('storage')
