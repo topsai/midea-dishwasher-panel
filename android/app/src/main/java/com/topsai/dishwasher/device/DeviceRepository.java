@@ -13,7 +13,7 @@ public class DeviceRepository {
  public DeviceRepository(Executor callbackExecutor,Listener listener,SessionFactory factory){callbacks=callbackExecutor;this.listener=listener;this.factory=factory;}
  public synchronized void start(DeviceConfig c){
   stop();config=c;active=true;long g=++generation;message="正在连接";emit(g);
-  polling=network.scheduleWithFixedDelay(()->read(g),0,5,TimeUnit.SECONDS);
+  polling=network.scheduleWithFixedDelay(()->read(g),0,2,TimeUnit.SECONDS);
  }
  public synchronized void stop(){stop("已停止连接 · 可能过期");}
  public synchronized void stop(String reason){

@@ -6,7 +6,7 @@ android {
  useLibrary 'android.test.mock'
  compileSdk 36
  buildToolsVersion '36.0.0'
- defaultConfig { applicationId 'com.topsai.dishwasher'; minSdk 26; targetSdk 36; versionCode 13; versionName '1.0.12'; testInstrumentationRunner 'android.test.InstrumentationTestRunner' }
+ defaultConfig { applicationId 'com.topsai.dishwasher'; minSdk 26; targetSdk 36; versionCode 14; versionName '1.0.13'; testInstrumentationRunner 'android.test.InstrumentationTestRunner' }
  buildFeatures { buildConfig true }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
