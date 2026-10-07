@@ -167,7 +167,17 @@ class DishwasherApp:
         style.configure('Treeview.Heading', font=('Microsoft YaHei UI', 10, 'bold'))
         outer = ttk.Frame(root, padding=20)
         outer.pack(fill='both', expand=True)
-        ttk.Label(outer, text='洗碗机控制面板', style='Title.TLabel').pack(anchor='w')
+        header = ttk.Frame(outer)
+        header.pack(fill='x')
+        self.home_button = ttk.Button(header, text='‹ 返回主页', command=lambda: self.show_page('home'))
+        self.page_title = tk.StringVar(value='洗碗机控制面板')
+        self.title_label = ttk.Label(header, textvariable=self.page_title, style='Title.TLabel')
+        self.title_label.pack(side='left')
+        self.settings_menu = tk.Menu(root, tearoff=False)
+        for page, label in (('status', '状态'), ('control', '控制'), ('device', '设备')):
+            self.settings_menu.add_command(label=label, command=lambda name=page: self.show_page(name))
+        self.settings_button = ttk.Button(header, text='⚙', width=3, command=self.open_settings)
+        self.settings_button.pack(side='right')
         ttk.Label(outer, text=f"7600V1E0  ·  {config['ip_address']}:{config['port']}  ·  本机直接连接").pack(anchor='w', pady=(4, 10))
         connection = ttk.Frame(outer)
         connection.pack(fill='x')
@@ -175,9 +185,15 @@ class DishwasherApp:
         self.updated = tk.StringVar(value='尚未获取数据')
         ttk.Label(connection, textvariable=self.connection).pack(side='left')
         ttk.Label(connection, textvariable=self.updated).pack(side='left', padx=18)
-        ttk.Button(connection, text='重新连接', command=lambda: self.request('reconnect')).pack(side='right')
-        ttk.Button(connection, text='立即刷新', command=lambda: self.request('refresh')).pack(side='right', padx=8)
-        priority = ttk.Frame(outer)
+        self.page_container = ttk.Frame(outer)
+        self.page_container.pack(fill='both', expand=True, pady=(12, 0))
+        self.pages = {name: ttk.Frame(self.page_container) for name in ('home', 'status', 'control', 'device')}
+        home = self.pages['home']
+        toolbar = ttk.Frame(home)
+        toolbar.pack(fill='x')
+        ttk.Button(toolbar, text='重新连接', command=lambda: self.request('reconnect')).pack(side='right')
+        ttk.Button(toolbar, text='立即刷新', command=lambda: self.request('refresh')).pack(side='right', padx=8)
+        priority = ttk.Frame(home)
         priority.pack(fill='x', pady=(16, 0))
         self.priority_values = {}
         self.priority_labels = {}
@@ -203,7 +219,7 @@ class DishwasherApp:
         style.configure('Storage.TFrame', background='#eaf7f1')
         style.configure('StorageTitle.TLabel', background='#eaf7f1', foreground='#168365', font=('Microsoft YaHei UI', 14, 'bold'))
         style.configure('StorageCaption.TLabel', background='#eaf7f1', foreground='#66778a')
-        action_cards = ttk.Frame(outer)
+        action_cards = ttk.Frame(home)
         action_cards.pack(fill='x', pady=(12, 0))
         action_cards.columnconfigure(0, weight=1, uniform='actions')
         action_cards.columnconfigure(1, weight=1, uniform='actions')
@@ -227,7 +243,7 @@ class DishwasherApp:
         self.storage_toggle = ttk.Button(actions, text='保管状态未上报', command=self.toggle_storage, style='Start.TButton')
         self.storage_toggle.pack(fill='x')
         self.controls.append(self.storage_toggle)
-        metrics = ttk.Frame(outer)
+        metrics = ttk.Frame(home)
         metrics.pack(fill='x', pady=16)
         self.metrics = {}
         for index, field in enumerate(('temperature', 'status', 'time_remaining', 'progress')):
@@ -237,13 +253,8 @@ class DishwasherApp:
             ttk.Label(card, text=FIELDS[field]).pack(anchor='w')
             self.metrics[field] = tk.StringVar(value='—')
             ttk.Label(card, textvariable=self.metrics[field], style='Metric.TLabel').pack(anchor='w', pady=5)
-        body = ttk.Frame(outer)
-        body.pack(fill='both', expand=True)
-        body.columnconfigure(0, weight=0)
-        body.columnconfigure(1, weight=1)
-        body.rowconfigure(0, weight=1)
-        left = ttk.LabelFrame(body, text='设备控制', padding=14)
-        left.grid(row=0, column=0, sticky='nsew', padx=(0, 16))
+        left = ttk.LabelFrame(self.pages['control'], text='设备控制', padding=14)
+        left.pack(fill='x')
         self.switch_labels = {}
         for field in ('power', 'child_lock'):
             self.switch_labels[field] = tk.StringVar(value=f'{FIELDS[field]}：—')
@@ -255,9 +266,10 @@ class DishwasherApp:
                 button.pack(side='left', expand=True, fill='x', padx=2)
                 self.controls.append(button)
         ttk.Label(left, text='模式列表来自通用协议，\n请只选择该机型实际支持的模式。\n选择列表本身不会发送命令。', wraplength=255).pack(anchor='w', pady=9)
-        ttk.Label(left, text='当前协议未实现独立暂停、预约、\n烘干／紫外控制及耗材档位设置。\n对应参数仍可在右侧查看。', wraplength=255).pack(anchor='w', pady=9)
-        right = ttk.LabelFrame(body, text='全部状态参数 · 每 5 秒刷新', padding=8)
-        right.grid(row=0, column=1, sticky='nsew')
+        ttk.Label(left, text='当前协议未实现独立暂停、预约、\n烘干／紫外控制及耗材档位设置。\n对应参数可在状态页查看。', wraplength=255).pack(anchor='w', pady=9)
+        ttk.Button(self.pages['control'], text='选择模式 / 启动洗涤', command=lambda: self.show_page('home')).pack(anchor='w', pady=12)
+        right = ttk.LabelFrame(self.pages['status'], text='全部参数 · 每 5 秒刷新', padding=8)
+        right.pack(fill='both', expand=True)
         self.table = ttk.Treeview(right, columns=('label', 'value', 'raw'), show='headings', height=14)
         for col, title, width in (('label', '参数', 155), ('value', '当前值', 140), ('raw', '原始字段 / 值', 245)):
             self.table.heading(col, text=title)
@@ -268,17 +280,46 @@ class DishwasherApp:
         self.table.pack(fill='both', expand=True)
         for field, label in FIELDS.items():
             self.table.insert('', 'end', iid=field, values=(label, '等待读取', field))
-        ttk.Label(outer, text='以下为设备返回的字段，数值含义及功能是否有效以该机型实际表现为准。').pack(anchor='w', pady=(10, 4))
+        ttk.Label(self.pages['status'], text='以下为设备返回的字段，数值含义及功能是否有效以该机型实际表现为准。').pack(anchor='w', pady=(10, 4))
+        device = ttk.LabelFrame(self.pages['device'], text='设备信息', padding=16)
+        device.pack(fill='x')
+        for label, value in (('型号', '7600V1E0'), ('设备地址', config['ip_address']), ('TCP 端口', config['port']), ('设备 ID', config.get('device_id', '未配置')), ('协议版本', config.get('device_protocol', '未配置'))):
+            ttk.Label(device, text=f'{label}：{value}').pack(anchor='w', pady=4)
+        ttk.Label(device, text='电脑与洗碗机需要连接同一局域网。配对 Token / Key 不在界面中显示。').pack(anchor='w', pady=(12, 4))
+        ttk.Label(device, text='配置来自同目录 dishwasher.json；修改配置后请重新启动程序。').pack(anchor='w', pady=4)
+        ttk.Button(device, text='重新连接设备', command=lambda: self.request('reconnect')).pack(anchor='w', pady=8)
+        ttk.Label(self.pages['device'], text='操作记录').pack(anchor='w', pady=(16, 4))
         self.feedback = tk.StringVar(value='连接成功后可操作；配对参数不会显示在界面中。')
         ttk.Label(outer, textvariable=self.feedback, wraplength=1050).pack(anchor='w', pady=4)
-        self.log = tk.Text(outer, height=4, font=('Microsoft YaHei UI', 9), bg='#e3eaf2', relief='flat')
+        self.log = tk.Text(self.pages['device'], height=4, font=('Microsoft YaHei UI', 9), bg='#e3eaf2', relief='flat')
         self.log.pack(fill='x', pady=(4, 0))
         self.log.configure(state='disabled')
+        self.show_page('home')
+        self.root.bind('<Escape>', lambda event: self.show_page('home'))
         self.set_controls()
         self.root.protocol('WM_DELETE_WINDOW', self.close)
         if start_worker:
             self.worker.start()
         self.poll_id = root.after(150, self.poll)
+
+    def open_settings(self):
+        try:
+            self.settings_menu.tk_popup(self.settings_button.winfo_rootx(), self.settings_button.winfo_rooty() + self.settings_button.winfo_height())
+        finally:
+            self.settings_menu.grab_release()
+
+    def show_page(self, name):
+        if name not in self.pages:
+            raise ValueError('未知页面')
+        for frame in self.pages.values():
+            frame.pack_forget()
+        self.pages[name].pack(fill='both', expand=True)
+        self.current_page = name
+        self.page_title.set({'home': '洗碗机控制面板', 'status': '状态', 'control': '控制', 'device': '设备'}[name])
+        if name == 'home':
+            self.home_button.pack_forget()
+        else:
+            self.home_button.pack(side='left', before=self.title_label, padx=(0, 12))
 
     def set_controls(self):
         for button in self.controls:
