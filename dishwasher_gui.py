@@ -183,7 +183,7 @@ class DishwasherApp:
             style.configure(name, font=('Microsoft YaHei UI', 12, 'bold'), foreground='white', background=color, padding=(18, 10))
             style.map(name, background=[('disabled', color), ('active', active)], foreground=[('disabled', 'white')])
         for name, color in (('Info', '#126dbe'), ('Good', '#168365'), ('Alert', '#c0392b'), ('Muted', '#66778a'), ('Warning', '#b86e0a')):
-            style.configure(f'{name}Priority.TLabel', font=('Microsoft YaHei UI', 25, 'bold'), background='white', foreground=color)
+            style.configure(f'{name}Priority.TLabel', font=('Microsoft YaHei UI', 23, 'bold'), background='white', foreground=color)
         style.configure('TButton', padding=(10, 6))
         style.configure('Treeview', rowheight=25, background='white', fieldbackground='white')
         style.configure('Treeview.Heading', font=('Microsoft YaHei UI', 10, 'bold'))
@@ -224,13 +224,13 @@ class DishwasherApp:
         self.priority_values = {}
         self.priority_labels = {}
         for index, field in enumerate(('water_lack', 'storage', 'power', 'door')):
-            card = ttk.Frame(priority, padding=(16, 12), style='Priority.TFrame')
+            card = ttk.Frame(priority, padding=(14, 10), style='Priority.TFrame')
             card.grid(row=0, column=index, sticky='nsew', padx=(0 if index == 0 else 8, 0))
             priority.columnconfigure(index, weight=1, uniform='priority')
             ttk.Label(card, text='保管' if field == 'storage' else '电源状态' if field == 'power' else FIELDS[field], style='PriorityTitle.TLabel', anchor='center', justify='center').pack(fill='x')
             self.priority_values[field] = tk.StringVar(value='未上报')
             label = ttk.Label(card, textvariable=self.priority_values[field], style='MutedPriority.TLabel', anchor='center', justify='center')
-            label.pack(fill='x', pady=(6, 0))
+            label.pack(fill='x', pady=(4, 0))
             self.priority_labels[field] = label
             if field == 'storage':
                 self.storage_remaining_label = tk.StringVar(value='剩余时间未上报')
