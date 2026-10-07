@@ -359,7 +359,18 @@ class DishwasherApp:
             value = self.snapshot.get(field)
             color, background = '#66778a', '#f2f5f8'
             if self.online and value is not None:
-                if field == 'water_lack' and value is True:
+                if field == 'temperature':
+                    if type(value) not in (int, float):
+                        color, background = '#66778a', '#f2f5f8'
+                    elif value < 35:
+                        color, background = '#2266d5', '#edf4ff'
+                    elif value <= 50:
+                        color, background = '#b86e0a', '#fff4df'
+                    else:
+                        color, background = '#c0392b', '#ffefed'
+                elif field == 'progress':
+                    color, background = ('#2266d5', '#edf4ff') if value == 'idle' else ('#b86e0a', '#fff4df')
+                elif field == 'water_lack' and value is True:
                     color, background = '#c0392b', '#ffefed'
                 elif field == 'door' and value is True:
                     color, background = '#b86e0a', '#fff4df'

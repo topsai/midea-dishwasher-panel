@@ -68,6 +68,25 @@ class NavigationTests(unittest.TestCase):
         app.set_controls()
         self.assertTrue(app.power_toggle.instate(['disabled']))
 
+    def test_temperature_color_boundaries(self):
+        app = self.app
+        app.online = True
+        for value, expected in ((34, '#edf4ff'), (35, '#fff4df'), (50, '#fff4df'), (51, '#ffefed'), (None, '#f2f5f8')):
+            app.snapshot = {'temperature': value}
+            app.set_controls()
+            self.assertEqual(app.status_cards['temperature'].fill_color, expected)
+        app.online = False
+        app.set_controls()
+        self.assertEqual(app.status_cards['temperature'].fill_color, '#f2f5f8')
+
+    def test_stage_idle_blue_other_reported_stages_orange(self):
+        app = self.app
+        app.online = True
+        for stage, expected in (('idle', '#edf4ff'), ('wash', '#fff4df'), ('complete', '#fff4df'), (None, '#f2f5f8')):
+            app.snapshot = {'progress': stage}
+            app.set_controls()
+            self.assertEqual(app.status_cards['progress'].fill_color, expected)
+
     def test_action_buttons_align_for_multiline_storage(self):
         app = self.app
         for summary in ('保管状态未上报', '保管：开启\n剩余：72 小时\n当前未运行', '保管：关闭\n剩余：0 小时\n当前未运行'):
