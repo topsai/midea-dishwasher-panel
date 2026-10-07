@@ -56,3 +56,7 @@ python tools/scan_secrets.py --config ../dishwasher.json --apk app/build/outputs
 - 保存配置无法解密：重新导入；卸载应用会删除本机配置。
 
 协议实现来源及 MIT 原文见 THIRD_PARTY_NOTICES.md 和 app/src/main/assets/midea-lan-LICENSE.txt。
+
+### 页面导航
+
+打开应用默认进入主页：重点状态、洗涤启动和保管按钮。右上角齿轮菜单进入“状态”（全部参数）、“控制”（电源、童锁）、“设备”（配对与地址配置）。子页面左上角和系统返回键均可返回主页。保管开启时按钮为绿色，关闭时为蓝色。
