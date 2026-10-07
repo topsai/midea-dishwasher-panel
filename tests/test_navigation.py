@@ -18,6 +18,32 @@ class NavigationTests(unittest.TestCase):
     def tearDown(self):
         self.app.close()
 
+    def test_device_settings_fit_or_scroll_and_password_is_masked(self):
+        app=self.app
+        app.show_page('device')
+        self.root.geometry('940x700')
+        self.root.update()
+        self.assertEqual(len(app.device_settings.buttons),6)
+        self.assertEqual(app.device_settings.password_entry.cget('show'),'●')
+        last=app.device_settings.buttons[-1]
+        visible=last.winfo_rooty()+last.winfo_height() <= self.root.winfo_rooty()+self.root.winfo_height()
+        self.assertTrue((visible and app.log.winfo_height()>=60) or hasattr(app,'device_canvas'))
+
+    def test_previous_device_result_is_rejected_after_config_change(self):
+        app=self.app
+        self.root.after_cancel(app.poll_id)
+        app.device_settings.apply(dict(app.config, device_id=123456))
+        app.events.put(('snapshot', ({'power':True}, {2:'strong_wash'}), 0))
+        app.poll()
+        self.assertFalse(app.online)
+        self.assertFalse(app.snapshot)
+        self.assertFalse(app.power_toggle.instate(['!disabled']))
+        self.root.after_cancel(app.poll_id)
+        app.events.put(('snapshot', ({'power':False}, {2:'strong_wash'}), 1))
+        app.poll()
+        self.assertTrue(app.online)
+        self.assertEqual(app.snapshot['power'],False)
+
     def test_default_home_and_gear_subpages(self):
         app = self.app
         self.assertEqual(app.current_page, 'home')

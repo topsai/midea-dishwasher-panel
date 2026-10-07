@@ -11,6 +11,7 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
  private TextView connection,updated,configSummary,storageRemainingLabel,runningStatusLabel,washRemainingLabel;private final TextView[] metrics=new TextView[2],rawRows=new TextView[24],priorityValues=new TextView[4];private final LinearLayout[] priorityCards=new LinearLayout[4],metricCards=new LinearLayout[2];private LinearLayout[] pages;private final List<View> controls=new ArrayList<>();private final Map<String,TextView> switchValues=new LinkedHashMap<>();
  private LinearLayout connectionBar;private TextView pageTitle;private Button homeButton;private Button washStart,storageToggle,powerToggle;private Spinner modes;private LinearLayout washSpot;private List<Integer> modeCodes;private EditText address,port;private int page=0,selectedMode=2;private boolean started,destroyed;private String configError;
  private android.window.OnBackInvokedCallback backToHome;private boolean backRegistered;
+ private PairingSettings pairingSettings;
  private static final String[] FIELD_LABELS={"电源","运行状态","洗涤模式","附加功能码","紫外功能","烘干功能","烘干状态","机门","亮碟剂","洗碗盐","童锁","保管功能","保管当前运行","剩余时间（分钟）","洗涤阶段","保管剩余（小时）","温度（℃）","湿度","水开关","缺水状态","故障码","软水档位","操作错误码","亮碟剂档位"};
  @Override public void onCreate(Bundle saved){
   super.onCreate(saved);getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
@@ -71,12 +72,7 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
   else safe(()->actions.setSwitch(field,value,true));
  }
  private void buildConfig(){
-  LinearLayout c=card(pages[PAGE_DEVICE]);c.addView(text("设备配置",19,INK));configSummary=text("",13,MUTED);c.addView(configSummary);c.addView(text("手机与洗碗机须连接同一局域网。配对信息使用 Android Keystore 加密保存，不显示 Token/Key 明文。",13,MUTED));
-  address=new EditText(this);address.setHint("设备 IP，例如 192.0.2.7");address.setSingleLine(true);address.setInputType(android.text.InputType.TYPE_CLASS_TEXT);c.addView(address);
-  port=new EditText(this);port.setHint("TCP 端口 6444");port.setSingleLine(true);port.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);c.addView(port);
-  c.addView(button("立即刷新 / 重连",this::refresh));
-  c.addView(button("保存地址并重连",this::saveAddress));c.addView(button("导入配对 JSON",()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");startActivityForResult(i,10);}));
-  c.addView(text("导入现有 dishwasher.json。APK 不包含配对凭据；其他 E1 型号或协议版本暂不支持。",12,MUTED));updateConfigFields();
+  pairingSettings=new PairingSettings(this,pages[PAGE_DEVICE],new PairingSettings.Host(){public DeviceConfig current(){return config;}public Network wifi(){return findWifi();}public void save(DeviceConfig c){persist(c);}public void refresh(){MainActivity.this.refresh();}public void importJson(){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");startActivityForResult(i,10);}});
  }
  private void updateConfigFields(){if(configSummary==null)return;configSummary.setText(config==null?"尚未导入配对配置":("已配置 · E1/V3 · ID "+config.deviceId));address.setText(config==null?"":config.ipAddress);port.setText(config==null?"6444":String.valueOf(config.port));if(configError!=null)configSummary.setText(configError);}
  private Network findWifi(){ConnectivityManager cm=(ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE);for(Network n:cm.getAllNetworks()){NetworkCapabilities c=cm.getNetworkCapabilities(n);if(c!=null&&c.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))return n;}return null;}
@@ -88,7 +84,7 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
  private void refresh(){if(!started)return;if(snapshot!=null&&snapshot.connected)repository.refresh();else connectIfReady();}
  @Override protected void onStart(){super.onStart();started=true;connectIfReady();}
  @Override protected void onStop(){started=false;repository.stop();super.onStop();}
- @Override protected void onDestroy(){destroyed=true;configController.unsubscribe(configListener);repository.shutdown();super.onDestroy();}
+ @Override protected void onDestroy(){destroyed=true;pairingSettings.close();configController.unsubscribe(configListener);repository.shutdown();super.onDestroy();}
  @Override protected void onSaveInstanceState(Bundle out){int position=modes.getSelectedItemPosition();if(position>=0&&position<modeCodes.size())selectedMode=modeCodes.get(position);out.putInt("page",page);out.putInt("mode",selectedMode);super.onSaveInstanceState(out);}
  @Override public void onUpdate(DeviceRepository.Snapshot s){if(destroyed)return;snapshot=s;render();}
  private String value(String field){Object v=snapshot!=null&&snapshot.state!=null?snapshot.state.values.get(field):null;return field.equals("storage_status")?DishwasherState.storageActivityText(v):v==null?"未上报":translate(v);}
@@ -123,7 +119,7 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
   catch(IllegalArgumentException e){Toast.makeText(this,"IP 或端口无效",Toast.LENGTH_LONG).show();}
  }
  private void persist(DeviceConfig next){configController.save(next);}
- private void configChanged(DeviceConfig next,String error){if(destroyed)return;config=next;configError=error;updateConfigFields();if(started)connectIfReady();if(error!=null)showError(error);}
+ private void configChanged(DeviceConfig next,String error){if(destroyed)return;config=next;configError=error;pairingSettings.update();if(started)connectIfReady();if(error!=null)showError(error);}
  private void showError(String message){if(!destroyed)Toast.makeText(this,message,Toast.LENGTH_LONG).show();}
- @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==10&&result==RESULT_OK&&data!=null&&data.getData()!=null){Uri uri=data.getData();ContentResolver resolver=getApplicationContext().getContentResolver();configController.importJson(()->resolver.openInputStream(uri));}}
+ @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(result!=RESULT_OK||data==null||data.getData()==null)return;if(request==10)pairingSettings.importResult(data.getData());else if(request==11)pairingSettings.exportResult(data.getData());}
 }

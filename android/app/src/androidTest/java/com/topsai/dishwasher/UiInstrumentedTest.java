@@ -16,6 +16,9 @@ public class UiInstrumentedTest extends InstrumentationTestCase{
   ui(()->activity.onUpdate(new DeviceRepository.Snapshot(new DishwasherState(Map.of("temperature",31,"time_remaining",0)),true,false,1000,"fixture")));
   ui(()->{ViewGroup table=activity.findViewById(MainActivity.ID_PARAMETER_TABLE);assertNotNull(table);assertEquals(24,table.getChildCount());assertTrue(textExists(table,"humidity"));assertTrue(textExists(table,"未上报"));assertTrue(textExists(table,"31"));});
  }
+ public void testPairingSettingsAreOnDevicePage()throws Exception{
+  ui(()->{activity.showPage(MainActivity.PAGE_DEVICE);View root=activity.getWindow().getDecorView();for(String label:new String[]{"搜索局域网设备","保存地址并重连","验证当前连接","导入配对 JSON","导出配置备份","登录并获取 / 更新密钥"})assertNotNull(findButton(root,label));assertTrue(textExists(root,"密码只用于本次"));activity.showPage(MainActivity.PAGE_HOME);assertFalse(findButton(root,"搜索局域网设备").isShown());});
+ }
  public void testStaleDisablesControls()throws Exception{
   ui(()->activity.onUpdate(new DeviceRepository.Snapshot(new DishwasherState(Map.of("temperature",31)),false,false,1000,"断线")));
   ui(()->{assertNotNull(activity.findViewById(MainActivity.ID_START));assertFalse(activity.findViewById(MainActivity.ID_START).isEnabled());assertTrue(textExists(activity.getWindow().getDecorView(),"可能过期"));assertTrue(textExists(activity.getWindow().getDecorView(),"31"));});
