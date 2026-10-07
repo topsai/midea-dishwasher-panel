@@ -12,7 +12,11 @@ MODULES=['dishwasher_gui.py','dishwasher_settings.py','dishwasher_pairing.py','d
 
 def archive(path,files):
     with zipfile.ZipFile(path,'w',zipfile.ZIP_DEFLATED) as z:
-        for source,name in files:z.write(source,name)
+        counts={}
+        for source,name in files:
+            counts[name]=counts.get(name,0)+1
+            target=name if counts[name]==1 else name+'.'+str(counts[name])
+            z.write(source,target)
 
 def main():
     parser=argparse.ArgumentParser()
