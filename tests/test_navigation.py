@@ -38,7 +38,7 @@ class NavigationTests(unittest.TestCase):
         self.assertTrue(app.wash_start.winfo_ismapped())
         self.assertTrue(app.worker.commands.empty())
 
-    def test_power_toggle_stays_at_top_and_uses_reported_state(self):
+    def test_power_toggle_is_home_only_and_uses_reported_state(self):
         from unittest.mock import Mock
         app = self.app
         app.control = Mock()
@@ -53,7 +53,7 @@ class NavigationTests(unittest.TestCase):
         for page in app.pages:
             app.show_page(page)
             self.root.update()
-            self.assertTrue(app.power_toggle.winfo_ismapped())
+            self.assertEqual(bool(app.power_toggle.winfo_ismapped()), page == 'home')
         app.busy = True
         app.set_controls()
         self.assertTrue(app.power_toggle.instate(['disabled']))
