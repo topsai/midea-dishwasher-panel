@@ -179,10 +179,16 @@ class DishwasherApp:
         self.settings_button = ttk.Button(header, text='⚙', width=3, command=self.open_settings)
         self.settings_button.pack(side='right')
         ttk.Label(outer, text='7600V1E0').pack(anchor='w', pady=(4, 10))
+        self.page_container = ttk.Frame(outer)
+        self.page_container.pack(fill='both', expand=True, pady=(12, 0))
+        self.pages = {name: ttk.Frame(self.page_container) for name in ('home', 'status', 'control', 'device')}
+        home = self.pages['home']
+        priority = ttk.Frame(home, padding=8, style='Priority.TFrame')
+        priority.pack(fill='x', pady=(16, 0))
         style.configure('StatusBar.TFrame', background='white')
         style.configure('StatusBar.TLabel', background='white', foreground='#66778a')
-        connection = self.status_bar = ttk.Frame(outer, padding=(12, 10), style='StatusBar.TFrame')
-        connection.pack(side='bottom', fill='x', pady=(12, 0))
+        connection = self.status_bar = ttk.Frame(priority, padding=(12, 10), style='StatusBar.TFrame')
+        connection.grid(row=0, column=0, columnspan=4, sticky='ew', pady=(0, 8))
         self.connection = tk.StringVar(value='正在连接…')
         self.updated = tk.StringVar(value='尚未获取数据')
         connection_details = ttk.Frame(connection, style='StatusBar.TFrame')
@@ -193,17 +199,11 @@ class DishwasherApp:
         self.power_toggle = ttk.Button(connection, text='电源状态未上报', command=self.toggle_power, style='Start.TButton')
         self.power_toggle.pack(side='right')
         self.controls.append(self.power_toggle)
-        self.page_container = ttk.Frame(outer)
-        self.page_container.pack(fill='both', expand=True, pady=(12, 0))
-        self.pages = {name: ttk.Frame(self.page_container) for name in ('home', 'status', 'control', 'device')}
-        home = self.pages['home']
-        priority = ttk.Frame(home)
-        priority.pack(fill='x', pady=(16, 0))
         self.priority_values = {}
         self.priority_labels = {}
         for index, field in enumerate(('water_lack', 'storage', 'power', 'door')):
             card = ttk.Frame(priority, padding=(16, 12), style='Priority.TFrame')
-            card.grid(row=0, column=index, sticky='nsew', padx=(0 if index == 0 else 8, 0))
+            card.grid(row=1, column=index, sticky='nsew', padx=(0 if index == 0 else 8, 0))
             priority.columnconfigure(index, weight=1, uniform='priority')
             ttk.Label(card, text='保管' if field == 'storage' else '电源状态' if field == 'power' else FIELDS[field], style='PriorityTitle.TLabel', anchor='center', justify='center').pack(fill='x')
             self.priority_values[field] = tk.StringVar(value='未上报')
@@ -252,7 +252,7 @@ class DishwasherApp:
         self.metrics = {}
         for index, field in enumerate(('temperature', 'status', 'time_remaining', 'progress')):
             card = ttk.Frame(metrics, padding=(12, 5))
-            card.grid(row=0, column=index, sticky='nsew')
+            card.grid(row=1, column=index, sticky='nsew')
             metrics.columnconfigure(index, weight=1)
             ttk.Label(card, text=FIELDS[field]).pack(anchor='w')
             self.metrics[field] = tk.StringVar(value='—')
@@ -326,10 +326,8 @@ class DishwasherApp:
         self.current_page = name
         self.page_title.set({'home': '洗碗机控制面板', 'status': '状态', 'control': '控制', 'device': '设备'}[name])
         if name == 'home':
-            self.status_bar.pack(side='bottom', fill='x', pady=(12, 0), before=self.page_container)
             self.home_button.pack_forget()
         else:
-            self.status_bar.pack_forget()
             self.home_button.pack(side='left', before=self.title_label, padx=(0, 12))
 
     def set_controls(self):
