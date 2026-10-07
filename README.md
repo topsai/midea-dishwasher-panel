@@ -1,6 +1,6 @@
 # 洗碗机局域网面板
 
-Python 桌面版与原生 Android App，通过家庭局域网直接连接洗碗机，展示状态并控制设备。**日常使用不需要 中转服务、电脑中转或美居云端在线。** 首次从美居获取设备密钥需要互联网和绑定该设备的个人账号，也可以导入已有配置。
+Python 桌面版与原生 Android App，通过家庭局域网直接连接洗碗机，展示状态并控制设备。**日常使用不需要电脑中转或美居云端在线。** 首次从美居获取设备密钥需要互联网和绑定该设备的个人账号，也可以导入已有配置。
 
 当前版本 **1.1.0**。仅适配已验证的 **7600V1E0 / E1 / V3 / subtype 3**，暂不支持其他型号，也不能覆盖美居 App 的全部功能。本项目与美的官方无隶属关系。
 
@@ -8,7 +8,18 @@ Python 桌面版与原生 Android App，通过家庭局域网直接连接洗碗�
 - [连接、配对与备份恢复](docs/CONNECTION.md)
 - [Android 安装、构建与测试](android/README.md)
 - [Python 独立下载包与 Windows EXE](desktop/README.md)
+- [界面展示](docs/SCREENSHOTS.md) · [配对信息与安全](SECURITY.md)
 - [更新记录](CHANGELOG.md) · [验证记录](android/VERIFICATION.md)
+
+## 界面展示
+
+以下为真实界面使用演示数据渲染的展示图，不包含真实设备地址、账号或配对密钥。
+
+<p><img src="docs/images/android-home.png" alt="Android 主页：重点状态、洗涤与保管控制" width="280" /></p>
+
+![Python 主页：重点状态、洗涤与保管控制](docs/images/python-home.png)
+
+更多状态、控制、设备配对页面见 [完整界面展示](docs/SCREENSHOTS.md)。
 
 ## 功能与页面
 
@@ -97,6 +108,8 @@ Windows 也可双击 `read_temperature.bat`；此脚本需要根目录已有有�
 .\.venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py"
 ```
 
-Android 构建与测试见 [Android 开发说明](android/README.md)。1.1.0 的验证记录：Python 22 项测试、Android 26 项单元测试通过；安卓设备页入口测试及真实设备的只读搜索／认证／状态读取通过。测试没有主动发送实际电源、童锁、保管或洗涤控制指令，物理执行效果仍需用户操作确认。
+Android 构建与测试见 [Android 开发说明](android/README.md)。1.1.0 的验证记录：Python 24 项测试、Android 26 项单元测试通过；安卓设备页入口测试及真实设备的只读搜索／认证／状态读取通过。测试没有主动发送实际电源、童锁、保管或洗涤控制指令，物理执行效果仍需用户操作确认。
 
 协议来源：[midea-lan](https://github.com/wuwentao/midea-lan) 2026.9.2；移植部分的 MIT 许可与来源见 [第三方说明](android/THIRD_PARTY_NOTICES.md)。源码、APK 和下载包均不包含实际配对密钥。
+
+贡献与发布约定见 [CONTRIBUTING.md](CONTRIBUTING.md)，配对信息保护和公开检查范围见 [SECURITY.md](SECURITY.md)。

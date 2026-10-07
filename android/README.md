@@ -1,8 +1,12 @@
 # Android 洗碗机面板
 
-原生 Java App，手机通过家庭 Wi-Fi 直接连接 7600V1E0（E1/V3、subtype 3）。无需电脑或 中转服务 在线。当前版本 **1.1.0**（versionCode 24），最低 Android 8.0 / API 26。
+原生 Java App，手机通过家庭 Wi-Fi 直接连接 7600V1E0（E1/V3、subtype 3）。无需电脑在线。当前版本 **1.1.0**（versionCode 24），最低 Android 8.0 / API 26。
 
-同一发布页还提供 [Python 独立源码包和 Windows EXE 包](../desktop/README.md)。本次桌面分发补充不改变安卓 APK 或通信功能。
+同一发布页还提供 [Python 独立源码包和 Windows EXE 包](../desktop/README.md)。
+
+<p><img src="../docs/images/android-home.png" alt="Android 主页" width="280" /></p>
+
+四个页面与配对入口见 [界面展示](../docs/SCREENSHOTS.md)。图片使用演示数据；配对信息保护与发布检查见 [安全说明](../SECURITY.md)。
 
 ## 安装与使用
 
@@ -63,8 +67,8 @@ python tools/scan_secrets.py --config ../dishwasher.json --apk app/build/outputs
 
 ## 验证范围
 
-1.1.0 在当前连接的 PKG110 / Android 15（API 35）手机上安装，设备页入口与实机搜索、现有凭据认证及状态读取通过。Android 26 项单元测试通过，构建与 lint 无错误。更早版本另有 Android 12 设备验收，不能据此声称所有系统版本均已实测。
+1.1.0 在Android 15（API 35）手机上安装，设备页入口与实机搜索、现有凭据认证及状态读取通过。Android 26 项单元测试通过，构建与 lint 无错误。更早版本另有 Android 12 设备验收，不能据此声称所有系统版本均已实测。
 
-真实美居账号登录／获取新密钥未实测；模拟服务与 Python 对照测试验证签名和请求结构。测试未主动执行物理控制，模式兼容性及设备执行效果仍需用户确认。详细历史证据见 [验证记录](VERIFICATION.md)。
+真实美居账号登录／获取新密钥未实测；模拟服务与 Python 对照测试验证签名和请求结构。测试未主动执行物理控制，模式兼容性及设备执行效果仍需用户确认。详细验证范围见 [验证记录](VERIFICATION.md)。
 
 故障排查见 [连接指南](../docs/CONNECTION.md#常见问题)。协议来源及 MIT 许可见 [第三方说明](THIRD_PARTY_NOTICES.md)。

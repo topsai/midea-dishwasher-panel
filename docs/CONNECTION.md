@@ -4,7 +4,7 @@
 
 ## 连接方式
 
-首次配对时，程序使用自己的美居账号请求设备 Token/Key，再向洗碗机认证。日常通信直接通过局域网 TCP 完成，不经过电脑或 中转服务，也不需要每次访问美居云端。
+首次配对时，程序使用自己的美居账号请求设备 Token/Key，再向洗碗机认证。日常通信直接通过局域网 TCP 完成，不经过电脑中转，也不需要每次访问美居云端。
 
 ```mermaid
 flowchart LR
@@ -66,7 +66,7 @@ flowchart LR
 
 “登录并获取 / 更新密钥”使用当前选中的设备和地址输入。云端返回新密钥后，只有通过设备验证才会替换原配置。
 
-现有局域网 Token 通常没有定时过期机制，但不能保证永远可用：重新配网／配对可能让旧密钥失效，固件或协议变化也可能影响兼容性。云端停止签发新密钥不等于旧密钥立即失效。协议背景见 [Midea AC LAN 说明](https://github.com/wuwentao/midea_ac_lan/blob/main/README_hans.md) 和 [midea-local 密钥缓存说明](https://github.com/midea-lan/midea-local/blob/main/README.md#command-line-tool)。
+现有局域网 Token 通常没有定时过期机制，但不能保证永远可用：重新配网／配对可能让旧密钥失效，固件或协议变化也可能影响兼容性。云端停止签发新密钥不等于旧密钥立即失效。协议背景见 [midea-local 密钥缓存说明](https://github.com/midea-lan/midea-local/blob/main/README.md#command-line-tool)。
 
 ## 备份与恢复
 
@@ -88,7 +88,7 @@ flowchart LR
 | 连接超时 | 检查设备 IP、端口、供电和 Wi-Fi 隔离；先在设备页验证，地址改变时重新搜索。 |
 | 认证失败 | 检查是否导入了另一台设备的配置；重新配网后可能需要获取新密钥。 |
 | 安卓配置无法解密 | 用有效 JSON 备份重新导入；旧密文可能受系统密钥变化影响，不能直接跨手机复制。 |
-| Python 启动失败 | 检查 Python 3.12+、Tkinter、依赖以及三个 Python 模块是否齐全；现有 JSON 损坏时先移到私人备份位置。 |
+| Python 启动失败 | 检查 Python 3.12+、Tkinter、依赖以及四个 Python 模块是否齐全；现有 JSON 损坏时先移到私人备份位置。 |
 | 保管开启但显示当前未运行 | 保管开关与当前动作不同，查看“保管功能”和剩余小时，不以当前动作判断开关。 |
 | 数值未上报或读数变灰 | 未上报不等于 0；灰色可能表示未知或断线，查看连接信息和更新时间。 |
 

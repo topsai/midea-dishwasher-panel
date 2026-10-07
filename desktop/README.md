@@ -1,6 +1,10 @@
 # Python 桌面版下载与运行
 
-版本 1.1.0，支持 7600V1E0 / E1 / V3 / subtype 3。连接洗碗机不需要 中转服务。
+版本 1.1.0，支持 7600V1E0 / E1 / V3 / subtype 3。通过局域网直接连接洗碗机。
+
+![Python 主页](https://raw.githubusercontent.com/topsai/midea-dishwasher-panel/main/docs/images/python-home.png)
+
+展示图使用演示数据。更多页面见 [完整界面展示](https://github.com/topsai/midea-dishwasher-panel/blob/main/docs/SCREENSHOTS.md)。
 
 ## Windows 可执行版
 
