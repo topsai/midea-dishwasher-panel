@@ -34,7 +34,7 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
   ImageButton settings=new ImageButton(this);settings.setId(ID_SETTINGS);settings.setContentDescription("设置菜单");settings.setImageResource(com.topsai.dishwasher.R.drawable.ic_settings);settings.setBackground(background(Color.TRANSPARENT));settings.setPadding(dp(12),dp(12),dp(12),dp(12));settings.setOnClickListener(v->{PopupMenu menu=new PopupMenu(this,settings);menu.getMenu().add(0,PAGE_STATUS,0,"状态");menu.getMenu().add(0,PAGE_CONTROL,1,"控制");menu.getMenu().add(0,PAGE_DEVICE,2,"设备");menu.setOnMenuItemClickListener(item->{showPage(item.getItemId());return true;});menu.show();});header.addView(settings,new LinearLayout.LayoutParams(dp(48),dp(48)));root.addView(header);root.addView(text("7600V1E0 · 局域网直连",13,MUTED));
   LinearLayout connectionRow=new LinearLayout(this);connectionRow.setGravity(Gravity.CENTER_VERTICAL);
   connection=text("尚未连接",12,MUTED);connectionRow.addView(connection,new LinearLayout.LayoutParams(0,-2,1));updated=text("等待设备数据",11,MUTED);updated.setPadding(dp(8),dp(4),dp(8),dp(4));connectionRow.addView(updated,new LinearLayout.LayoutParams(0,-2,1));
-  powerToggle=button("电源未上报",()->{Object current=snapshot!=null&&snapshot.state!=null?snapshot.state.values.get("power"):null;if(current instanceof Boolean)switchAction("power",!((Boolean)current));});powerToggle.setId(ID_POWER);powerToggle.setTag("power");powerToggle.setTextSize(13);controls.add(powerToggle);connectionRow.addView(powerToggle,new LinearLayout.LayoutParams(dp(112),dp(48)));root.addView(connectionRow);
+  powerToggle=button("电源未上报",()->{Object current=snapshot!=null&&snapshot.state!=null?snapshot.state.values.get("power"):null;if(current instanceof Boolean)switchAction("power",!((Boolean)current));});powerToggle.setId(ID_POWER);powerToggle.setTag("power");powerToggle.setTextSize(13);powerToggle.setTypeface(null,Typeface.BOLD);powerToggle.setTextColor(Color.WHITE);powerToggle.setBackground(background(BLUE));powerToggle.setPadding(dp(8),0,dp(8),0);powerToggle.setElevation(dp(2));controls.add(powerToggle);connectionRow.addView(powerToggle,new LinearLayout.LayoutParams(dp(112),dp(48)));root.addView(connectionRow);
   FrameLayout content=new FrameLayout(this);root.addView(content,new LinearLayout.LayoutParams(-1,0,1));pages=new LinearLayout[4];
   for(int i=0;i<4;i++){ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);pages[i]=column();pages[i].setPadding(0,dp(12),0,dp(16));scroll.addView(pages[i]);content.addView(scroll);}
   buildStatus();buildControls();buildConfig();setContentView(root);root.setFocusableInTouchMode(true);root.requestFocus();showPage(page);render();root.requestApplyInsets();
@@ -105,8 +105,10 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
   for(View view:controls){boolean available=connected&&!snapshot.busy;if(view.getTag() instanceof String)available=available&&snapshot.state!=null&&snapshot.state.values.get(view.getTag())!=null;view.setEnabled(available);}
   if(!(storageCurrent instanceof Boolean))storageToggle.setEnabled(false);
   Object powerCurrent=snapshot!=null&&snapshot.state!=null?snapshot.state.values.get("power"):null;
-  powerToggle.setText(powerCurrent instanceof Boolean?(Boolean.TRUE.equals(powerCurrent)?"⏻  关闭电源":"⏻  开启电源"):"电源未上报");
+  powerToggle.setText(powerCurrent instanceof Boolean?(Boolean.TRUE.equals(powerCurrent)?"关闭电源":"开启电源"):"电源未上报");
   if(!(powerCurrent instanceof Boolean))powerToggle.setEnabled(false);
+  int powerColor=connected&&powerCurrent instanceof Boolean?(Boolean.TRUE.equals(powerCurrent)?GREEN:BLUE):0xffa7b6c8;
+  powerToggle.setBackgroundTintList(android.content.res.ColorStateList.valueOf(powerColor));
   washStart.setBackgroundTintList(android.content.res.ColorStateList.valueOf(connected?BLUE:0xffa7b6c8));
   int storageColor=connected&&storageCurrent instanceof Boolean?(Boolean.TRUE.equals(storageCurrent)?GREEN:BLUE):0xffa7b6c8;
   storageToggle.setBackgroundTintList(android.content.res.ColorStateList.valueOf(storageColor));
