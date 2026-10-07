@@ -178,13 +178,18 @@ class DishwasherApp:
             self.settings_menu.add_command(label=label, command=lambda name=page: self.show_page(name))
         self.settings_button = ttk.Button(header, text='⚙', width=3, command=self.open_settings)
         self.settings_button.pack(side='right')
-        ttk.Label(outer, text=f"7600V1E0  ·  {config['ip_address']}:{config['port']}  ·  本机直接连接").pack(anchor='w', pady=(4, 10))
-        connection = ttk.Frame(outer)
-        connection.pack(fill='x')
+        ttk.Label(outer, text='7600V1E0').pack(anchor='w', pady=(4, 10))
+        style.configure('StatusBar.TFrame', background='white')
+        style.configure('StatusBar.TLabel', background='white', foreground='#66778a')
+        connection = self.status_bar = ttk.Frame(outer, padding=(12, 10), style='StatusBar.TFrame')
+        connection.pack(side='bottom', fill='x', pady=(12, 0))
         self.connection = tk.StringVar(value='正在连接…')
         self.updated = tk.StringVar(value='尚未获取数据')
-        ttk.Label(connection, textvariable=self.connection).pack(side='left')
-        ttk.Label(connection, textvariable=self.updated).pack(side='left', padx=18)
+        connection_details = ttk.Frame(connection, style='StatusBar.TFrame')
+        connection_details.pack(side='left')
+        ttk.Label(connection_details, textvariable=self.connection, style='StatusBar.TLabel').pack(anchor='w')
+        ttk.Label(connection_details, text=f"{config['ip_address']}:{config['port']} · 本机直接连接", style='StatusBar.TLabel').pack(anchor='w')
+        ttk.Label(connection, textvariable=self.updated, style='StatusBar.TLabel').pack(side='left', padx=18)
         self.power_toggle = ttk.Button(connection, text='电源状态未上报', command=self.toggle_power, style='Start.TButton')
         self.power_toggle.pack(side='right')
         self.controls.append(self.power_toggle)
@@ -321,8 +326,10 @@ class DishwasherApp:
         self.current_page = name
         self.page_title.set({'home': '洗碗机控制面板', 'status': '状态', 'control': '控制', 'device': '设备'}[name])
         if name == 'home':
+            self.status_bar.pack(side='bottom', fill='x', pady=(12, 0), before=self.page_container)
             self.home_button.pack_forget()
         else:
+            self.status_bar.pack_forget()
             self.home_button.pack(side='left', before=self.title_label, padx=(0, 12))
 
     def set_controls(self):

@@ -34,8 +34,8 @@ public class UiInstrumentedTest extends InstrumentationTestCase{
  public void testSystemBackReturnsHome()throws Exception{
   ui(()->activity.showPage(MainActivity.PAGE_STATUS));getInstrumentation().waitForIdleSync();getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);getInstrumentation().waitForIdleSync();ui(()->assertTrue(activity.findViewById(MainActivity.ID_START).isShown()));
  }
- public void testPowerToggleIsGlobalAndUsesReportedState()throws Exception{
-  ui(()->{activity.onUpdate(new DeviceRepository.Snapshot(new DishwasherState(Map.of("power",true)),true,false,1000,"fixture"));Button power=activity.findViewById(MainActivity.ID_POWER);assertEquals("关闭电源",power.getText().toString());assertTrue(power.isEnabled());for(int page=0;page<4;page++){activity.showPage(page);assertTrue(power.isShown());}
+ public void testPowerToggleIsHomeOnlyAndUsesReportedState()throws Exception{
+  ui(()->{activity.onUpdate(new DeviceRepository.Snapshot(new DishwasherState(Map.of("power",true)),true,false,1000,"fixture"));Button power=activity.findViewById(MainActivity.ID_POWER);assertEquals("关闭电源",power.getText().toString());assertTrue(power.isEnabled());for(int page=0;page<4;page++){activity.showPage(page);assertEquals(page==MainActivity.PAGE_HOME,power.isShown());}
    activity.onUpdate(new DeviceRepository.Snapshot(new DishwasherState(Map.of("power",false)),true,false,1000,"fixture"));assertEquals("开启电源",power.getText().toString());assertTrue(power.isEnabled());
    activity.onUpdate(new DeviceRepository.Snapshot(new DishwasherState(Map.of("power",false)),true,true,1000,"busy"));assertFalse(power.isEnabled());
    activity.onUpdate(new DeviceRepository.Snapshot(new DishwasherState(),true,false,1000,"missing"));assertFalse(power.isEnabled());
