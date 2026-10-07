@@ -64,3 +64,5 @@ python tools/scan_secrets.py --config ../dishwasher.json --apk app/build/outputs
 电源开关位于主页独立的白色圆角连接栏，与连接状态和更新时间并排，子页面隐藏。关闭电源仍需确认。
 
 自动刷新间隔为2秒；Python的手动刷新和重连入口位于设备子页面。
+
+主页不显示手动刷新/重连按钮；手动入口集中在设备页，两个版本持续每2秒自动刷新。

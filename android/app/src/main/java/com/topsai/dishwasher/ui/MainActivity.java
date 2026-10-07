@@ -49,7 +49,6 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
   washSpot=column();pages[0].addView(washSpot);
   LinearLayout panel=card(pages[0]);String[] labels={"温度","运行状态","洗涤阶段","剩余时间"};
   for(int row=0;row<2;row++){LinearLayout line=new LinearLayout(this);for(int col=0;col<2;col++){int i=row*2+col;LinearLayout cell=column();cell.addView(text(labels[i],12,MUTED));metrics[i]=text("未上报",23,INK);metrics[i].setTypeface(null,Typeface.BOLD);cell.addView(metrics[i]);line.addView(cell,new LinearLayout.LayoutParams(0,-2,1));}panel.addView(line);}
-  panel.addView(button("立即刷新 / 重连",this::refresh));
   LinearLayout values=card(pages[PAGE_STATUS]);values.addView(text("全部参数",19,INK));values.addView(text("保留原始字段和值。未上报不等于 0；字段存在不代表机型支持该功能。",12,MUTED));
   LinearLayout table=column();table.setId(ID_PARAMETER_TABLE);values.addView(table);
   for(int i=0;i<24;i++){LinearLayout item=column();item.setPadding(0,dp(10),0,dp(10));item.addView(text(FIELD_LABELS[i]+" · "+DishwasherState.FIELDS[i],14,INK));rawRows[i]=text("未上报",13,MUTED);item.addView(rawRows[i]);table.addView(item);}
@@ -75,6 +74,7 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
   LinearLayout c=card(pages[PAGE_DEVICE]);c.addView(text("设备配置",19,INK));configSummary=text("",13,MUTED);c.addView(configSummary);c.addView(text("手机与洗碗机须连接同一局域网。配对信息使用 Android Keystore 加密保存，不显示 Token/Key 明文。",13,MUTED));
   address=new EditText(this);address.setHint("设备 IP，例如 192.0.2.7");address.setSingleLine(true);address.setInputType(android.text.InputType.TYPE_CLASS_TEXT);c.addView(address);
   port=new EditText(this);port.setHint("TCP 端口 6444");port.setSingleLine(true);port.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);c.addView(port);
+  c.addView(button("立即刷新 / 重连",this::refresh));
   c.addView(button("保存地址并重连",this::saveAddress));c.addView(button("导入配对 JSON",()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");startActivityForResult(i,10);}));
   c.addView(text("导入现有 dishwasher.json。APK 不包含配对凭据；其他 E1 型号或协议版本暂不支持。",12,MUTED));updateConfigFields();
  }
