@@ -130,6 +130,28 @@ class DeviceWorker(threading.Thread):
                 self.device.close_socket()
 
 
+class RoundedCard(tk.Canvas):
+    """Resizable white rounded background for the connection card."""
+    def __init__(self, parent):
+        super().__init__(parent, height=80, bg='#eef3f8', highlightthickness=0)
+        self.content = ttk.Frame(self, padding=(12, 8), style='StatusBar.TFrame')
+        self.window = self.create_window(8, 8, anchor='nw', window=self.content)
+        self.bind('<Configure>', self.redraw)
+        self.content.bind('<Configure>', self.fit_height)
+
+    def fit_height(self, event):
+        desired = self.content.winfo_reqheight() + 16
+        if int(self.cget('height')) != desired:
+            self.configure(height=desired)
+
+    def redraw(self, event):
+        w, h, r = event.width, event.height, 16
+        self.delete('background')
+        self.create_polygon(r, 0, w-r, 0, w, 0, w, r, w, h-r, w, h, w-r, h, r, h, 0, h, 0, h-r, 0, r, 0, 0, fill='white', outline='white', smooth=True, tags='background')
+        self.tag_lower('background')
+        self.itemconfigure(self.window, width=max(1, w-16))
+
+
 class DishwasherApp:
     def __init__(self, root, config, start_worker=True):
         self.root = root
@@ -183,27 +205,27 @@ class DishwasherApp:
         self.page_container.pack(fill='both', expand=True, pady=(12, 0))
         self.pages = {name: ttk.Frame(self.page_container) for name in ('home', 'status', 'control', 'device')}
         home = self.pages['home']
-        priority = ttk.Frame(home, padding=8, style='Priority.TFrame')
-        priority.pack(fill='x', pady=(16, 0))
         style.configure('StatusBar.TFrame', background='white')
         style.configure('StatusBar.TLabel', background='white', foreground='#66778a')
-        connection = self.status_bar = ttk.Frame(priority, padding=(12, 10), style='StatusBar.TFrame')
-        connection.grid(row=0, column=0, columnspan=4, sticky='ew', pady=(0, 8))
+        self.status_bar = RoundedCard(home)
+        self.status_bar.pack(fill='x', pady=(0, 12))
+        connection = self.status_bar.content
         self.connection = tk.StringVar(value='正在连接…')
         self.updated = tk.StringVar(value='尚未获取数据')
         connection_details = ttk.Frame(connection, style='StatusBar.TFrame')
         connection_details.pack(side='left')
         ttk.Label(connection_details, textvariable=self.connection, style='StatusBar.TLabel').pack(anchor='w')
-        ttk.Label(connection_details, text=f"{config['ip_address']}:{config['port']} · 本机直接连接", style='StatusBar.TLabel').pack(anchor='w')
-        ttk.Label(connection, textvariable=self.updated, style='StatusBar.TLabel').pack(side='left', padx=18)
+        ttk.Label(connection_details, textvariable=self.updated, style='StatusBar.TLabel').pack(anchor='w')
         self.power_toggle = ttk.Button(connection, text='电源状态未上报', command=self.toggle_power, style='Start.TButton')
         self.power_toggle.pack(side='right')
         self.controls.append(self.power_toggle)
+        priority = ttk.Frame(home, padding=8, style='Priority.TFrame')
+        priority.pack(fill='x', pady=(0, 0))
         self.priority_values = {}
         self.priority_labels = {}
         for index, field in enumerate(('water_lack', 'storage', 'power', 'door')):
             card = ttk.Frame(priority, padding=(16, 12), style='Priority.TFrame')
-            card.grid(row=1, column=index, sticky='nsew', padx=(0 if index == 0 else 8, 0))
+            card.grid(row=0, column=index, sticky='nsew', padx=(0 if index == 0 else 8, 0))
             priority.columnconfigure(index, weight=1, uniform='priority')
             ttk.Label(card, text='保管' if field == 'storage' else '电源状态' if field == 'power' else FIELDS[field], style='PriorityTitle.TLabel', anchor='center', justify='center').pack(fill='x')
             self.priority_values[field] = tk.StringVar(value='未上报')
@@ -252,7 +274,7 @@ class DishwasherApp:
         self.metrics = {}
         for index, field in enumerate(('temperature', 'status', 'time_remaining', 'progress')):
             card = ttk.Frame(metrics, padding=(12, 5))
-            card.grid(row=1, column=index, sticky='nsew')
+            card.grid(row=0, column=index, sticky='nsew')
             metrics.columnconfigure(index, weight=1)
             ttk.Label(card, text=FIELDS[field]).pack(anchor='w')
             self.metrics[field] = tk.StringVar(value='—')
