@@ -38,6 +38,36 @@ class NavigationTests(unittest.TestCase):
         self.assertTrue(app.wash_start.winfo_ismapped())
         self.assertTrue(app.worker.commands.empty())
 
+    def test_power_toggle_stays_at_top_and_uses_reported_state(self):
+        from unittest.mock import Mock
+        app = self.app
+        app.control = Mock()
+        app.online = True
+        for state, target, text in ((True, False, '⏻  关闭电源'), (False, True, '⏻  开启电源')):
+            app.snapshot = {'power': state}
+            app.set_controls()
+            self.assertEqual(app.power_toggle.cget('text'), text)
+            app.power_toggle.invoke()
+            app.control.assert_called_once_with('power', target)
+            app.control.reset_mock()
+        for page in app.pages:
+            app.show_page(page)
+            self.root.update()
+            self.assertTrue(app.power_toggle.winfo_ismapped())
+        app.busy = True
+        app.set_controls()
+        self.assertTrue(app.power_toggle.instate(['disabled']))
+        app.busy = False
+        app.snapshot = {}
+        app.set_controls()
+        app.power_toggle.invoke()
+        self.assertTrue(app.power_toggle.instate(['disabled']))
+        app.control.assert_not_called()
+        app.online = False
+        app.snapshot = {'power': True}
+        app.set_controls()
+        self.assertTrue(app.power_toggle.instate(['disabled']))
+
     def test_navigation_retains_mode_and_live_parameters(self):
         app = self.app
         self.root.after_cancel(app.poll_id)
