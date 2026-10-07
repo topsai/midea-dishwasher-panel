@@ -131,10 +131,11 @@ class DeviceWorker(threading.Thread):
 
 
 class RoundedCard(tk.Canvas):
-    """Resizable white rounded background for the connection card."""
-    def __init__(self, parent):
-        super().__init__(parent, height=80, bg='#eef3f8', highlightthickness=0)
-        self.content = ttk.Frame(self, padding=(12, 8), style='StatusBar.TFrame')
+    """Resizable rounded background for connection and status cards."""
+    def __init__(self, parent, fill='white', outer_bg='#eef3f8', content_style='StatusBar.TFrame', padding=(12, 8)):
+        super().__init__(parent, height=80, bg=outer_bg, highlightthickness=0)
+        self.fill_color = fill
+        self.content = ttk.Frame(self, padding=padding, style=content_style)
         self.window = self.create_window(8, 8, anchor='nw', window=self.content)
         self.bind('<Configure>', self.redraw)
         self.content.bind('<Configure>', self.fit_height)
@@ -147,9 +148,13 @@ class RoundedCard(tk.Canvas):
     def redraw(self, event):
         w, h, r = event.width, event.height, 16
         self.delete('background')
-        self.create_polygon(r, 0, w-r, 0, w, 0, w, r, w, h-r, w, h, w-r, h, r, h, 0, h, 0, h-r, 0, r, 0, 0, fill='white', outline='white', smooth=True, tags='background')
+        self.create_polygon(r, 0, w-r, 0, w, 0, w, r, w, h-r, w, h, w-r, h, r, h, 0, h, 0, h-r, 0, r, 0, 0, fill=self.fill_color, outline=self.fill_color, smooth=True, tags='background')
         self.tag_lower('background')
         self.itemconfigure(self.window, width=max(1, w-16))
+
+    def set_color(self, color):
+        self.fill_color = color
+        self.itemconfigure('background', fill=color, outline=color)
 
 
 class DishwasherApp:
@@ -222,21 +227,24 @@ class DishwasherApp:
         priority.pack(fill='x', pady=(0, 0))
         self.priority_values = {}
         self.priority_labels = {}
+        self.status_cards = {}
+        self.status_value_labels = {}
         for index, field in enumerate(('water_lack', 'storage', 'power', 'door')):
-            card = ttk.Frame(priority, padding=(14, 10), style='Priority.TFrame')
+            card = self.make_status_card(priority, field)
             card.grid(row=0, column=index, sticky='nsew', padx=(0 if index == 0 else 8, 0))
             priority.columnconfigure(index, weight=1, uniform='priority')
-            ttk.Label(card, text='保管' if field == 'storage' else '电源状态' if field == 'power' else FIELDS[field], style='PriorityTitle.TLabel', anchor='center', justify='center').pack(fill='x')
+            ttk.Label(card.content, text='保管' if field == 'storage' else '电源状态' if field == 'power' else FIELDS[field], style=f'{field}.StatusTitle.TLabel', anchor='center', justify='center').pack(fill='x')
             self.priority_values[field] = tk.StringVar(value='未上报')
-            label = ttk.Label(card, textvariable=self.priority_values[field], style='MutedPriority.TLabel', anchor='center', justify='center')
+            label = ttk.Label(card.content, textvariable=self.priority_values[field], style=f'{field}.StatusValue.TLabel', anchor='center', justify='center')
             label.pack(fill='x', pady=(4, 0))
             self.priority_labels[field] = label
+            self.status_value_labels[field] = label
             if field == 'storage':
                 self.storage_remaining_label = tk.StringVar(value='剩余时间未上报')
-                ttk.Label(card, textvariable=self.storage_remaining_label, style='PriorityTitle.TLabel', anchor='center').pack(fill='x', pady=(4, 0))
+                ttk.Label(card.content, textvariable=self.storage_remaining_label, style=f'{field}.StatusTitle.TLabel', anchor='center').pack(fill='x', pady=(4, 0))
             if field == 'power':
                 self.running_status_label = tk.StringVar(value='运行状态未上报')
-                ttk.Label(card, textvariable=self.running_status_label, style='PriorityTitle.TLabel', anchor='center').pack(fill='x', pady=(4, 0))
+                ttk.Label(card.content, textvariable=self.running_status_label, style=f'{field}.StatusTitle.TLabel', anchor='center').pack(fill='x', pady=(4, 0))
         style.configure('Wash.TFrame', background='#edf4ff')
         style.configure('WashTitle.TLabel', background='#edf4ff', foreground='#2266d5', font=('Microsoft YaHei UI', 14, 'bold'))
         style.configure('WashCaption.TLabel', background='#edf4ff', foreground='#66778a')
@@ -272,15 +280,16 @@ class DishwasherApp:
         metrics.grid(row=1, column=0, columnspan=4, sticky='ew', pady=(8, 0))
         self.metrics = {}
         for index, field in enumerate(('temperature', 'progress')):
-            card = ttk.Frame(metrics, padding=(14, 10), style='Priority.TFrame')
+            card = self.make_status_card(metrics, field)
             card.grid(row=0, column=index, sticky='nsew', padx=(0 if index == 0 else 8, 0))
             metrics.columnconfigure(index, weight=1, uniform='metrics')
-            ttk.Label(card, text=FIELDS[field], style='PriorityTitle.TLabel', anchor='center').pack(fill='x')
+            ttk.Label(card.content, text=FIELDS[field], style=f'{field}.StatusTitle.TLabel', anchor='center').pack(fill='x')
             self.metrics[field] = tk.StringVar(value='未上报')
-            ttk.Label(card, textvariable=self.metrics[field], style='InfoPriority.TLabel', anchor='center').pack(fill='x', pady=(4, 0))
+            self.status_value_labels[field] = ttk.Label(card.content, textvariable=self.metrics[field], style=f'{field}.StatusValue.TLabel', anchor='center')
+            self.status_value_labels[field].pack(fill='x', pady=(4, 0))
             if field == 'progress':
                 self.wash_remaining_label = tk.StringVar(value='剩余时间未上报')
-                ttk.Label(card, textvariable=self.wash_remaining_label, style='PriorityTitle.TLabel', anchor='center').pack(fill='x', pady=(4, 0))
+                ttk.Label(card.content, textvariable=self.wash_remaining_label, style=f'{field}.StatusTitle.TLabel', anchor='center').pack(fill='x', pady=(4, 0))
         left = ttk.LabelFrame(self.pages['control'], text='设备控制', padding=14)
         left.pack(fill='x')
         self.switch_labels = {}
@@ -335,6 +344,34 @@ class DishwasherApp:
             self.worker.start()
         self.poll_id = root.after(150, self.poll)
 
+    def make_status_card(self, parent, field):
+        style = ttk.Style(self.root)
+        style.configure(f'{field}.Status.TFrame', background='#f2f5f8')
+        style.configure(f'{field}.StatusTitle.TLabel', background='#f2f5f8', foreground='#66778a')
+        style.configure(f'{field}.StatusValue.TLabel', font=('Microsoft YaHei UI', 23, 'bold'), background='#f2f5f8', foreground='#66778a')
+        card = RoundedCard(parent, fill='#f2f5f8', outer_bg='white', content_style=f'{field}.Status.TFrame', padding=(6, 4))
+        self.status_cards[field] = card
+        return card
+
+    def update_status_colors(self):
+        style = ttk.Style(self.root)
+        for field, card in self.status_cards.items():
+            value = self.snapshot.get(field)
+            color, background = '#66778a', '#f2f5f8'
+            if self.online and value is not None:
+                if field == 'water_lack' and value is True:
+                    color, background = '#c0392b', '#ffefed'
+                elif field == 'door' and value is True:
+                    color, background = '#b86e0a', '#fff4df'
+                elif field in ('water_lack', 'door') or field in ('storage', 'power') and value is True:
+                    color, background = '#168365', '#eaf7f1'
+                else:
+                    color, background = '#2266d5', '#edf4ff'
+            card.set_color(background)
+            style.configure(f'{field}.Status.TFrame', background=background)
+            style.configure(f'{field}.StatusTitle.TLabel', background=background)
+            style.configure(f'{field}.StatusValue.TLabel', background=background, foreground=color)
+
     def open_settings(self):
         try:
             self.settings_menu.tk_popup(self.settings_button.winfo_rootx(), self.settings_button.winfo_rooty() + self.settings_button.winfo_height())
@@ -355,6 +392,7 @@ class DishwasherApp:
             self.home_button.pack(side='left', before=self.title_label, padx=(0, 12))
 
     def set_controls(self):
+        self.update_status_colors()
         for button in self.controls:
             button.configure(state='normal' if self.online and not self.busy else 'disabled')
         self.mode_combo.configure(state='readonly' if self.online and not self.busy else 'disabled')
@@ -438,8 +476,6 @@ class DishwasherApp:
                         if field == 'power' and isinstance(value, bool):
                             text = '已开机' if value else '已关机'
                         variable.set(text)
-                        color = 'Muted' if value is None else 'Warning' if field == 'door' and value is True else 'Alert' if field == 'water_lack' and value is True else 'Good' if (field in ('water_lack', 'door') and value is False) or (field in ('storage', 'power') and value is True) else 'Info'
-                        self.priority_labels[field].configure(style=f'{color}Priority.TLabel')
                     running = self.snapshot.get('status')
                     self.running_status_label.set('运行状态未上报' if running is None else f"运行：{display_value('status', running)}")
                     remaining = self.snapshot.get('storage_remaining')
