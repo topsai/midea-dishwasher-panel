@@ -7,6 +7,8 @@ import tkinter as tk
 from datetime import datetime
 from pathlib import Path
 from tkinter import messagebox, ttk
+from dishwasher_settings import DeviceSettings
+from dishwasher_pairing import DEFAULT, read_config
 
 from midealan.const import ProtocolVersion
 from midealan.devices.e1 import MideaAppliance
@@ -77,6 +79,10 @@ class DeviceWorker(threading.Thread):
         self.commands = queue.Queue()
         self.stopping = threading.Event()
         self.device = None
+        self.generation = 0
+
+    def emit(self, event, payload):
+        self.events.put((event, payload, self.generation))
 
     def stop(self):
         self.stopping.set()
@@ -93,12 +99,20 @@ class DeviceWorker(threading.Thread):
                 if self.stopping.is_set():
                     break
                 try:
+                    if action == 'configure':
+                        if self.device:
+                            self.device.close_socket()
+                        self.device = None
+                        next_config, generation = value
+                        self.config = dict(next_config)
+                        self.generation = generation
+                        action, value = 'reconnect', None
                     if action == 'reconnect' and self.device:
                         self.device.close_socket()
                         self.device = None
                     if self.device is None:
                         # 重连后丢弃旧的快照，不能显示成新的设备状态。
-                        self.events.put(('connecting', None))
+                        self.emit('connecting', None)
                         cfg = dict(self.config)
                         cfg['device_protocol'] = ProtocolVersion(cfg['device_protocol'])
                         candidate = MideaAppliance(**cfg)
@@ -114,13 +128,13 @@ class DeviceWorker(threading.Thread):
                             self.device.set_work_mode(value)
                         else:
                             self.device.set_attribute(action, value)
-                        self.events.put(('sent', (action, value)))
+                        self.emit('sent', (action, value))
                         self.device.refresh_status(check_protocol=True)
-                    self.events.put(('snapshot', (self.device.attributes, self.device.modes)))
+                    self.emit('snapshot', (self.device.attributes, self.device.modes))
                     deadline = time.monotonic() + 2
                 except Exception:
                     # 不把可能包含配对数据的库异常写入界面或日志。
-                    self.events.put(('error', '读取／发送失败，请检查设备网络后重连。失败操作不会自动重发。'))
+                    self.emit('error', '读取／发送失败，请检查设备网络后重连。失败操作不会自动重发。')
                     if self.device:
                         self.device.close_socket()
                         self.device = None
@@ -158,9 +172,10 @@ class RoundedCard(tk.Canvas):
 
 
 class DishwasherApp:
-    def __init__(self, root, config, start_worker=True):
+    def __init__(self, root, config, start_worker=True, config_path=None):
         self.root = root
         self.config = config
+        self.config_generation = 0
         self.events = queue.Queue()
         self.worker = DeviceWorker(config, self.events)
         self.snapshot = {}
@@ -318,22 +333,30 @@ class DishwasherApp:
         for field, label in FIELDS.items():
             self.table.insert('', 'end', iid=field, values=(label, '等待读取', field))
         ttk.Label(self.pages['status'], text='以下为设备返回的字段，数值含义及功能是否有效以该机型实际表现为准。').pack(anchor='w', pady=(10, 4))
-        device = ttk.LabelFrame(self.pages['device'], text='设备信息', padding=16)
+        self.device_canvas = tk.Canvas(self.pages['device'], bg='#eef3f8', highlightthickness=0)
+        device_scrollbar = ttk.Scrollbar(self.pages['device'], orient='vertical', command=self.device_canvas.yview)
+        self.device_canvas.configure(yscrollcommand=device_scrollbar.set)
+        device_scrollbar.pack(side='right', fill='y')
+        self.device_canvas.pack(side='left', fill='both', expand=True)
+        device_content = ttk.Frame(self.device_canvas)
+        device_window = self.device_canvas.create_window(0, 0, window=device_content, anchor='nw')
+        device_content.bind('<Configure>', lambda e: self.device_canvas.configure(scrollregion=self.device_canvas.bbox('all')))
+        self.device_canvas.bind('<Configure>', lambda e: self.device_canvas.itemconfigure(device_window, width=e.width))
+        self.root.bind('<MouseWheel>', lambda e: self.device_canvas.yview_scroll(int(-e.delta/120), 'units') if self.current_page == 'device' else None)
+        device = ttk.LabelFrame(device_content, text='设备信息', padding=16)
         device.pack(fill='x')
-        for label, value in (('型号', '7600V1E0'), ('设备地址', config['ip_address']), ('TCP 端口', config['port']), ('设备 ID', config.get('device_id', '未配置')), ('协议版本', config.get('device_protocol', '未配置'))):
-            ttk.Label(device, text=f'{label}：{value}').pack(anchor='w', pady=4)
         ttk.Label(device, text='电脑与洗碗机需要连接同一局域网。配对 Token / Key 不在界面中显示。').pack(anchor='w', pady=(12, 4))
-        ttk.Label(device, text='配置来自同目录 dishwasher.json；修改配置后请重新启动程序。').pack(anchor='w', pady=4)
         device_actions = ttk.Frame(device)
         device_actions.pack(anchor='w', pady=8)
         self.reconnect_button = ttk.Button(device_actions, text='重新连接', command=lambda: self.request('reconnect'))
         self.reconnect_button.pack(side='left')
         self.refresh_button = ttk.Button(device_actions, text='立即刷新', command=lambda: self.request('refresh'))
         self.refresh_button.pack(side='left', padx=8)
-        ttk.Label(self.pages['device'], text='操作记录').pack(anchor='w', pady=(16, 4))
+        self.device_settings = DeviceSettings(self, device_content, config_path or Path(__file__).with_name('dishwasher.json'))
+        ttk.Label(device_content, text='操作记录').pack(anchor='w', pady=(16, 4))
         self.feedback = tk.StringVar(value='连接成功后可操作；配对参数不会显示在界面中。')
         ttk.Label(outer, textvariable=self.feedback, wraplength=1050).pack(anchor='w', pady=4)
-        self.log = tk.Text(self.pages['device'], height=4, font=('Microsoft YaHei UI', 9), bg='#e3eaf2', relief='flat')
+        self.log = tk.Text(device_content, height=4, font=('Microsoft YaHei UI', 9), bg='#e3eaf2', relief='flat')
         self.log.pack(fill='x', pady=(4, 0))
         self.log.configure(state='disabled')
         self.show_page('home')
@@ -462,7 +485,10 @@ class DishwasherApp:
     def poll(self):
         try:
             while True:
-                event, payload = self.events.get_nowait()
+                item = self.events.get_nowait()
+                event, payload = item[:2]
+                if len(item) == 3 and item[2] != self.config_generation:
+                    continue
                 if event == 'snapshot':
                     self.snapshot, self.modes = payload
                     self.online = True
@@ -515,6 +541,9 @@ class DishwasherApp:
                     text = f'已发送：{FIELDS.get(field, field)} → {label}；以设备实际返回状态为准。'
                     self.feedback.set(text)
                     self.log_message(text)
+                elif event == 'settings':
+                    settings, success, result = payload
+                    settings.finish(success, result)
                 elif event == 'error':
                     self.online = False
                     self.busy = False
@@ -535,7 +564,8 @@ class DishwasherApp:
 def main():
     root = tk.Tk()
     try:
-        config = json.loads(Path(__file__).with_name('dishwasher.json').read_text(encoding='utf-8'))
+        path = Path(__file__).with_name('dishwasher.json')
+        config = read_config(path) if path.exists() else dict(DEFAULT)
         DishwasherApp(root, config)
     except Exception:
         messagebox.showerror('启动失败', '无法加载设备配置或依赖，请检查同目录的 dishwasher.json。', parent=root)
