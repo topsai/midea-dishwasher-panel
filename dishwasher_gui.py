@@ -117,14 +117,14 @@ class DeviceWorker(threading.Thread):
                         self.events.put(('sent', (action, value)))
                         self.device.refresh_status(check_protocol=True)
                     self.events.put(('snapshot', (self.device.attributes, self.device.modes)))
-                    deadline = time.monotonic() + 5
+                    deadline = time.monotonic() + 2
                 except Exception:
                     # 不把可能包含配对数据的库异常写入界面或日志。
                     self.events.put(('error', '读取／发送失败，请检查设备网络后重连。失败操作不会自动重发。'))
                     if self.device:
                         self.device.close_socket()
                         self.device = None
-                    deadline = time.monotonic() + 5
+                    deadline = time.monotonic() + 2
         finally:
             if self.device:
                 self.device.close_socket()
@@ -192,10 +192,6 @@ class DishwasherApp:
         self.page_container.pack(fill='both', expand=True, pady=(12, 0))
         self.pages = {name: ttk.Frame(self.page_container) for name in ('home', 'status', 'control', 'device')}
         home = self.pages['home']
-        toolbar = ttk.Frame(home)
-        toolbar.pack(fill='x')
-        ttk.Button(toolbar, text='重新连接', command=lambda: self.request('reconnect')).pack(side='right')
-        ttk.Button(toolbar, text='立即刷新', command=lambda: self.request('refresh')).pack(side='right', padx=8)
         priority = ttk.Frame(home)
         priority.pack(fill='x', pady=(16, 0))
         self.priority_values = {}
@@ -271,7 +267,7 @@ class DishwasherApp:
         ttk.Label(left, text='模式列表来自通用协议，\n请只选择该机型实际支持的模式。\n选择列表本身不会发送命令。', wraplength=255).pack(anchor='w', pady=9)
         ttk.Label(left, text='当前协议未实现独立暂停、预约、\n烘干／紫外控制及耗材档位设置。\n对应参数可在状态页查看。', wraplength=255).pack(anchor='w', pady=9)
         ttk.Button(self.pages['control'], text='选择模式 / 启动洗涤', command=lambda: self.show_page('home')).pack(anchor='w', pady=12)
-        right = ttk.LabelFrame(self.pages['status'], text='全部参数 · 每 5 秒刷新', padding=8)
+        right = ttk.LabelFrame(self.pages['status'], text='全部参数 · 每 2 秒刷新', padding=8)
         right.pack(fill='both', expand=True)
         self.table = ttk.Treeview(right, columns=('label', 'value', 'raw'), show='headings', height=14)
         for col, title, width in (('label', '参数', 155), ('value', '当前值', 140), ('raw', '原始字段 / 值', 245)):
@@ -290,7 +286,12 @@ class DishwasherApp:
             ttk.Label(device, text=f'{label}：{value}').pack(anchor='w', pady=4)
         ttk.Label(device, text='电脑与洗碗机需要连接同一局域网。配对 Token / Key 不在界面中显示。').pack(anchor='w', pady=(12, 4))
         ttk.Label(device, text='配置来自同目录 dishwasher.json；修改配置后请重新启动程序。').pack(anchor='w', pady=4)
-        ttk.Button(device, text='重新连接设备', command=lambda: self.request('reconnect')).pack(anchor='w', pady=8)
+        device_actions = ttk.Frame(device)
+        device_actions.pack(anchor='w', pady=8)
+        self.reconnect_button = ttk.Button(device_actions, text='重新连接', command=lambda: self.request('reconnect'))
+        self.reconnect_button.pack(side='left')
+        self.refresh_button = ttk.Button(device_actions, text='立即刷新', command=lambda: self.request('refresh'))
+        self.refresh_button.pack(side='left', padx=8)
         ttk.Label(self.pages['device'], text='操作记录').pack(anchor='w', pady=(16, 4))
         self.feedback = tk.StringVar(value='连接成功后可操作；配对参数不会显示在界面中。')
         ttk.Label(outer, textvariable=self.feedback, wraplength=1050).pack(anchor='w', pady=4)
