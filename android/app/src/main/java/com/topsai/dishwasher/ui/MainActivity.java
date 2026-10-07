@@ -3,13 +3,13 @@ import android.app.*;import android.os.*;import android.content.*;import android
 import com.topsai.dishwasher.device.*;import com.topsai.dishwasher.model.*;import com.topsai.dishwasher.storage.*;import java.io.*;import java.text.SimpleDateFormat;import java.util.*;import java.util.concurrent.*;
 /** Foreground-only native Chinese LAN panel. No pairing secrets are displayed. */
 public class MainActivity extends Activity implements DeviceRepository.Listener {
- public static final int ID_PARAMETER_TABLE=2000,ID_MODE=3000,ID_START=3001,ID_STORAGE=3002,ID_SETTINGS=4000,ID_HOME=4001;
+ public static final int ID_PARAMETER_TABLE=2000,ID_MODE=3000,ID_START=3001,ID_STORAGE=3002,ID_SETTINGS=4000,ID_HOME=4001,ID_POWER=4002;
  public static final int PAGE_HOME=0,PAGE_STATUS=1,PAGE_CONTROL=2,PAGE_DEVICE=3;
  private static final int BG=0xfff2f5f8,INK=0xff172b43,MUTED=0xff66778a,BLUE=0xff2266d5,GREEN=0xff168365;
  private final Handler main=new Handler(Looper.getMainLooper());
  private ConfigController configController;private final ConfigController.Listener configListener=this::configChanged;private DeviceConfig config;private DeviceRepository repository;private ControlActions actions;private DeviceRepository.Snapshot snapshot;
  private TextView connection,updated,configSummary,storageRemainingLabel,runningStatusLabel;private final TextView[] metrics=new TextView[4],rawRows=new TextView[24],priorityValues=new TextView[4];private final LinearLayout[] priorityCards=new LinearLayout[4];private LinearLayout[] pages;private final List<View> controls=new ArrayList<>();private final Map<String,TextView> switchValues=new LinkedHashMap<>();
- private TextView pageTitle;private Button homeButton;private Button washStart,storageToggle;private Spinner modes;private LinearLayout washSpot;private List<Integer> modeCodes;private EditText address,port;private int page=0,selectedMode=2;private boolean started,destroyed;private String configError;
+ private TextView pageTitle;private Button homeButton;private Button washStart,storageToggle,powerToggle;private Spinner modes;private LinearLayout washSpot;private List<Integer> modeCodes;private EditText address,port;private int page=0,selectedMode=2;private boolean started,destroyed;private String configError;
  private android.window.OnBackInvokedCallback backToHome;private boolean backRegistered;
  private static final String[] FIELD_LABELS={"电源","运行状态","洗涤模式","附加功能码","紫外功能","烘干功能","烘干状态","机门","亮碟剂","洗碗盐","童锁","保管功能","保管当前运行","剩余时间（分钟）","洗涤阶段","保管剩余（小时）","温度（℃）","湿度","水开关","缺水状态","故障码","软水档位","操作错误码","亮碟剂档位"};
  @Override public void onCreate(Bundle saved){
@@ -32,7 +32,9 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
   homeButton=button("‹",()->showPage(PAGE_HOME));homeButton.setId(ID_HOME);homeButton.setContentDescription("返回主页");homeButton.setTextSize(28);header.addView(homeButton,new LinearLayout.LayoutParams(dp(48),dp(48)));
   pageTitle=text("洗碗机",30,INK);pageTitle.setTypeface(null,Typeface.BOLD);header.addView(pageTitle,new LinearLayout.LayoutParams(0,-2,1));
   ImageButton settings=new ImageButton(this);settings.setId(ID_SETTINGS);settings.setContentDescription("设置菜单");settings.setImageResource(com.topsai.dishwasher.R.drawable.ic_settings);settings.setBackground(background(Color.TRANSPARENT));settings.setPadding(dp(12),dp(12),dp(12),dp(12));settings.setOnClickListener(v->{PopupMenu menu=new PopupMenu(this,settings);menu.getMenu().add(0,PAGE_STATUS,0,"状态");menu.getMenu().add(0,PAGE_CONTROL,1,"控制");menu.getMenu().add(0,PAGE_DEVICE,2,"设备");menu.setOnMenuItemClickListener(item->{showPage(item.getItemId());return true;});menu.show();});header.addView(settings,new LinearLayout.LayoutParams(dp(48),dp(48)));root.addView(header);root.addView(text("7600V1E0 · 局域网直连",13,MUTED));
-  connection=text("尚未连接",14,MUTED);root.addView(connection);updated=text("等待设备数据",12,MUTED);root.addView(updated);
+  LinearLayout connectionRow=new LinearLayout(this);connectionRow.setGravity(Gravity.CENTER_VERTICAL);
+  connection=text("尚未连接",12,MUTED);connectionRow.addView(connection,new LinearLayout.LayoutParams(0,-2,1));updated=text("等待设备数据",11,MUTED);updated.setPadding(dp(8),dp(4),dp(8),dp(4));connectionRow.addView(updated,new LinearLayout.LayoutParams(0,-2,1));
+  powerToggle=button("电源未上报",()->{Object current=snapshot!=null&&snapshot.state!=null?snapshot.state.values.get("power"):null;if(current instanceof Boolean)switchAction("power",!((Boolean)current));});powerToggle.setId(ID_POWER);powerToggle.setTag("power");powerToggle.setTextSize(13);controls.add(powerToggle);connectionRow.addView(powerToggle,new LinearLayout.LayoutParams(dp(112),dp(48)));root.addView(connectionRow);
   FrameLayout content=new FrameLayout(this);root.addView(content,new LinearLayout.LayoutParams(-1,0,1));pages=new LinearLayout[4];
   for(int i=0;i<4;i++){ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);pages[i]=column();pages[i].setPadding(0,dp(12),0,dp(16));scroll.addView(pages[i]);content.addView(scroll);}
   buildStatus();buildControls();buildConfig();setContentView(root);root.setFocusableInTouchMode(true);root.requestFocus();showPage(page);render();root.requestApplyInsets();
@@ -53,7 +55,7 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
   for(int i=0;i<24;i++){LinearLayout item=column();item.setPadding(0,dp(10),0,dp(10));item.addView(text(FIELD_LABELS[i]+" · "+DishwasherState.FIELDS[i],14,INK));rawRows[i]=text("未上报",13,MUTED);item.addView(rawRows[i]);table.addView(item);}
  }
  private void buildControls(){
-  String[] fields={"power","child_lock"},names={"电源","童锁"};
+  String[] fields={"child_lock"},names={"童锁"};
   for(int i=0;i<fields.length;i++){String field=fields[i],name=names[i];LinearLayout c=card(pages[PAGE_CONTROL]);c.addView(text(name,19,INK));TextView value=text("未上报",13,MUTED);c.addView(value);switchValues.put(field,value);LinearLayout row=new LinearLayout(this);
    Button on=button("开启",()->switchAction(field,true)),off=button("关闭",()->switchAction(field,false));on.setTag(field);off.setTag(field);controls.add(on);controls.add(off);row.addView(on,new LinearLayout.LayoutParams(0,-2,1));row.addView(off,new LinearLayout.LayoutParams(0,-2,1));c.addView(row);}
   LinearLayout actionCards=new LinearLayout(this);washSpot.addView(actionCards);LinearLayout wash=card(actionCards);LinearLayout.LayoutParams washLayout=new LinearLayout.LayoutParams(0,-1,1);washLayout.setMargins(0,0,dp(4),dp(12));wash.setLayoutParams(washLayout);wash.setPadding(dp(12),dp(12),dp(12),dp(12));wash.setBackground(background(0xffedf4ff));TextView washTitle=text("启动洗涤",20,BLUE);washTitle.setTypeface(null,Typeface.BOLD);wash.addView(washTitle);wash.addView(text("选择本机支持的模式",12,MUTED));
@@ -102,6 +104,9 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
   Object storageCurrent=snapshot!=null&&snapshot.state!=null?snapshot.state.values.get("storage"):null;storageToggle.setText(storageCurrent instanceof Boolean?(Boolean.TRUE.equals(storageCurrent)?"关闭保管":"开启保管"):"保管状态未上报");
   for(View view:controls){boolean available=connected&&!snapshot.busy;if(view.getTag() instanceof String)available=available&&snapshot.state!=null&&snapshot.state.values.get(view.getTag())!=null;view.setEnabled(available);}
   if(!(storageCurrent instanceof Boolean))storageToggle.setEnabled(false);
+  Object powerCurrent=snapshot!=null&&snapshot.state!=null?snapshot.state.values.get("power"):null;
+  powerToggle.setText(powerCurrent instanceof Boolean?(Boolean.TRUE.equals(powerCurrent)?"⏻  关闭电源":"⏻  开启电源"):"电源未上报");
+  if(!(powerCurrent instanceof Boolean))powerToggle.setEnabled(false);
   washStart.setBackgroundTintList(android.content.res.ColorStateList.valueOf(connected?BLUE:0xffa7b6c8));
   int storageColor=connected&&storageCurrent instanceof Boolean?(Boolean.TRUE.equals(storageCurrent)?GREEN:BLUE):0xffa7b6c8;
   storageToggle.setBackgroundTintList(android.content.res.ColorStateList.valueOf(storageColor));
