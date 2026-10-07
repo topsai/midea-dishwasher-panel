@@ -27,7 +27,7 @@ flowchart LR
 5. 程序获取候选密钥，依次尝试设备认证与状态读取。通过后保存并重连；失败时保留原配置。
 6. 返回主页查看实时状态，再按需要使用控制按钮。
 
-界面不显示 Token/Key。密码只用于本次后台任务，不保存。Android 配置使用 Keystore 加密；Python 配置保存在脚本同目录的 `dishwasher.json`。
+界面不显示 Token/Key。密码只用于本次后台任务，不保存。Android 配置使用 Keystore 加密；Python 源码版配置保存在脚本同目录，Windows 可执行版保存在 EXE 同目录的 `dishwasher.json`。
 
 ## 导入已有配置
 

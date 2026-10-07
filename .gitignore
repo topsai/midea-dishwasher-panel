@@ -13,3 +13,6 @@ android/local.properties
 android/dist/
 *.jks
 *.keystore
+desktop/build/
+desktop/dist/
+desktop/*.spec

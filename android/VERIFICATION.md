@@ -2,6 +2,8 @@
 
 ## 当前版本：1.1.0
 
+桌面分发补充：提供 Windows x64 可执行 ZIP 与独立 Python 源码 ZIP。Python 24 项测试通过，新增冻结配置路径测试。Windows 11 x64 实机解压启动显示正常面板；从其他工作目录启动仍使用 EXE 同目录配置，并确认建立设备 TCP 连接。包内及解压后的 EXE 模块检查未发现实际 Token/Key，验收临时配置已删除。安卓 APK 沿用既有 1.1.0，此次不改变其界面和通信行为。
+
 2026-10-07（北京时间），应用 ID `com.topsai.dishwasher`，versionCode 24，debug APK。详细证据见本文末尾的 1.1.0 配对设置记录。
 
 - Python 22 项测试、Android 26 项单元测试通过；Android 构建与 lint 无错误。

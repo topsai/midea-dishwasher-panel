@@ -2,6 +2,8 @@
 
 原生 Java App，手机通过家庭 Wi-Fi 直接连接 7600V1E0（E1/V3、subtype 3）。无需电脑或 中转服务 在线。当前版本 **1.1.0**（versionCode 24），最低 Android 8.0 / API 26。
 
+同一发布页还提供 [Python 独立源码包和 Windows EXE 包](../desktop/README.md)。本次桌面分发补充不改变安卓 APK 或通信功能。
+
 ## 安装与使用
 
 从 [Releases](https://github.com/topsai/midea-dishwasher-panel/releases/latest) 下载 `dishwasher-debug.apk`。这是调试签名构建，安装时按系统提示允许该来源安装应用。

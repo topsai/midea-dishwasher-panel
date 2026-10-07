@@ -7,6 +7,7 @@ Python 桌面版与原生 Android App，通过家庭局域网直接连接洗碗�
 - [下载 APK 和完整源码](https://github.com/topsai/midea-dishwasher-panel/releases/latest)
 - [连接、配对与备份恢复](docs/CONNECTION.md)
 - [Android 安装、构建与测试](android/README.md)
+- [Python 独立下载包与 Windows EXE](desktop/README.md)
 - [更新记录](CHANGELOG.md) · [验证记录](android/VERIFICATION.md)
 
 ## 功能与页面
@@ -45,6 +46,8 @@ Python 桌面版与原生 Android App，通过家庭局域网直接连接洗碗�
 
 ## Python 安装和运行
 
+Windows 用户可直接下载 `dishwasher-python-windows-x64-v1.1.0.zip`，解压后双击 `DishwasherPanel.exe`，无需安装 Python。配置保存在 EXE 同目录，请解压到当前用户可写位置。另提供独立源码包 `dishwasher-python-source-v1.1.0.zip`，使用下面的方式运行。
+
 需要 **Python 3.12+** 和 Tkinter，依赖固定为 `midea-lan==2026.9.2`；本机实测 Python 3.14。电脑与洗碗机需要连接同一局域网。
 
 下载源码后，Windows 可双击 `start_panel.bat`。首次运行会创建项目目录下的 `.venv` 并安装依赖，需要互联网连接；请确认 `python` 命令指向符合版本要求的 Python。
@@ -65,7 +68,7 @@ python3 -m venv .venv
 .venv/bin/python dishwasher_gui.py
 ```
 
-Linux 的 Tkinter 可能需要通过系统包管理器安装。`dishwasher_gui.py`、`dishwasher_settings.py`、`dishwasher_pairing.py` 需要保留在同一目录。
+Linux 的 Tkinter 可能需要通过系统包管理器安装。`dishwasher_gui.py`、`dishwasher_settings.py`、`dishwasher_pairing.py`、`dishwasher_runtime.py` 四个模块需要保留在同一目录。
 
 首次启动没有 `dishwasher.json` 时会打开界面，从齿轮 → **设备**搜索并登录配对或导入现有配置即可。不要把空凭据示例复制为实际配置后直接启动：示例中的设备 ID 为 0，Token/Key 为空，仅用于说明文件格式。如果现有 `dishwasher.json` 损坏而无法启动，可将它移到私人备份位置，再打开程序导入有效配置。
 

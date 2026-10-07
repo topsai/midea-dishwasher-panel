@@ -9,6 +9,7 @@ from pathlib import Path
 from tkinter import messagebox, ttk
 from dishwasher_settings import DeviceSettings
 from dishwasher_pairing import DEFAULT, read_config
+from dishwasher_runtime import config_path as default_config_path
 
 from midealan.const import ProtocolVersion
 from midealan.devices.e1 import MideaAppliance
@@ -352,7 +353,7 @@ class DishwasherApp:
         self.reconnect_button.pack(side='left')
         self.refresh_button = ttk.Button(device_actions, text='立即刷新', command=lambda: self.request('refresh'))
         self.refresh_button.pack(side='left', padx=8)
-        self.device_settings = DeviceSettings(self, device_content, config_path or Path(__file__).with_name('dishwasher.json'))
+        self.device_settings = DeviceSettings(self, device_content, config_path or default_config_path())
         ttk.Label(device_content, text='操作记录').pack(anchor='w', pady=(16, 4))
         self.feedback = tk.StringVar(value='连接成功后可操作；配对参数不会显示在界面中。')
         ttk.Label(outer, textvariable=self.feedback, wraplength=1050).pack(anchor='w', pady=4)
@@ -564,7 +565,7 @@ class DishwasherApp:
 def main():
     root = tk.Tk()
     try:
-        path = Path(__file__).with_name('dishwasher.json')
+        path = default_config_path()
         config = read_config(path) if path.exists() else dict(DEFAULT)
         DishwasherApp(root, config)
     except Exception:
