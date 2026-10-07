@@ -43,7 +43,7 @@ class NavigationTests(unittest.TestCase):
         app = self.app
         app.control = Mock()
         app.online = True
-        for state, target, text in ((True, False, '⏻  关闭电源'), (False, True, '⏻  开启电源')):
+        for state, target, text in ((True, False, '关闭电源'), (False, True, '开启电源')):
             app.snapshot = {'power': state}
             app.set_controls()
             self.assertEqual(app.power_toggle.cget('text'), text)
