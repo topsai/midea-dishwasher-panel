@@ -1,68 +1,68 @@
 # Android 洗碗机面板
 
-原生 Java 应用，手机通过家庭 Wi-Fi 直接连接美的 7600V1E0（E1/V3，subtype 3）。不需要电脑或 中转服务 在线。
+原生 Java App，手机通过家庭 Wi-Fi 直接连接 7600V1E0（E1/V3、subtype 3）。无需电脑或 中转服务 在线。当前版本 **1.1.0**（versionCode 24），最低 Android 8.0 / API 26。
 
-## 使用
+## 安装与使用
 
-1. 安装 `dist/dishwasher-debug.apk`，手机连接洗碗机所在 Wi-Fi。
-2. 在“设备”页导入现有 `dishwasher.json`（字段见根目录 example 文件）。Token 为 64 字节的十六进制串，Key 为 32 字节；导入后使用 Android Keystore AES-GCM 加密保存，界面不显示明文，应用不备份配置。
-3. “状态”页每 2 秒刷新，显示温度等指标和全部 24 个字段。读数过期会标明更新时间、禁用控制；点击“立即刷新 / 重连”可重连。
-4. “控制”页支持电源、童锁、保管、选择并启动洗涤模式。选择模式不会发命令；启动和关机需要确认。通用模式并非本机全部已验证支持，请选择本机实际支持的程序。
+从 [Releases](https://github.com/topsai/midea-dishwasher-panel/releases/latest) 下载 `dishwasher-debug.apk`。这是调试签名构建，安装时按系统提示允许该来源安装应用。
 
-独立暂停、预约、独立烘干/紫外控制、耗材档位设置尚未实现。缺失参数显示“未上报”，不转为 0。发送成功不等于执行成功，界面以设备返回状态为准；失败写入不自动重试。切到后台关闭连接，返回前台重新连接。旋转屏幕恢复页面和模式选择，不重发控制。
+默认主页显示重点状态、电源、洗涤启动和保管切换；齿轮菜单提供状态、控制、设备三个子页面。状态页展示全部 24 个字段，控制页提供童锁，设备页集中提供连接与配对工具。子页面左上角和系统返回键均可返回主页。
+
+在“设备”页可以搜索并选择洗碗机、登录美居获取或更新密钥，也可以导入已有配对 JSON。新配置通过设备认证和状态读取后才保存；密码不保存，设备凭据由 Android Keystore 加密。详细操作见 [连接与恢复指南](../docs/CONNECTION.md)。真实美居账号获取新密钥尚待实测，验证码登录暂不支持。
+
+自动读取在一次请求完成后间隔 2 秒。断线时标明读数可能过期并禁用控制；手动刷新／重连位于设备页。启动和关机需要确认，保管按钮根据设备返回的开关状态切换颜色和动作。独立暂停、预约、独立烘干／紫外及耗材档位设置尚未实现。
+
+切到后台关闭连接，回到前台重新连接；旋转恢复页面和模式选择，不重发控制。手机在家庭 Wi-Fi 以外时无法直接连接洗碗机。Socket 显式使用 Wi-Fi 网络，避免移动网络默认路由影响局域网连接。
+
+卸载前请在设备页导出配置备份。若用另一台电脑自行构建，调试签名可能不同，不能覆盖安装现有 APK；不要在未备份配置时直接卸载。导出 JSON 含 Token/Key，不要公开分享。
 
 ## 构建
 
-固定环境：JDK 17、Gradle 8.13、Android Gradle Plugin 8.13.2、compile/target SDK 36、Build Tools 36.0.0，最低 API 26。兼容性依据：[Android 官方 AGP 8.13 文档](https://developer.android.com/build/releases/agp-8-13-0-release-notes)。
+项目使用 JDK 17、Gradle 8.13、Android Gradle Plugin 8.13.2、compile/target SDK 36 和 Build Tools 36.0.0。配置 `JAVA_HOME` 与 `ANDROID_HOME`，也可在本机忽略的 `local.properties` 中设置 SDK 路径。
 
-配置 JAVA_HOME 和 ANDROID_HOME（或本机忽略的 local.properties），在 android 目录运行：
-
-```powershell
-./gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
-```
-
-产物：`app/build/outputs/apk/debug/app-debug.apk`。首次构建需要网络下载 Google/Maven 依赖；wrapper 使用官方 Gradle 下载地址。测试与设备报文对照不使用真实凭据。
-
-手机测试（已授权 ADB）：
+在仓库根目录执行：
 
 ```powershell
-./tools/run_device_tests.ps1 -Adb C:/scrcpy-win64-v4.1/adb.exe
+.\android\gradlew.bat -p android :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 
-它构建并安装应用与测试 APK，通过 Android instrumentation 执行测试。配置存储测试使用隔离目录，不覆盖真实配对配置；UI 测试不点击设备控制。无需 Gradle UTP 主机插件。测试完成后可卸载测试包 `com.topsai.dishwasher.test`。
+Linux/macOS 使用 `./android/gradlew -p android`。首次构建需要网络下载 Gradle 和 Maven/Google 依赖；`--offline` 只适用于缓存已完整的环境。
 
-调试配置可从电脑直接导入私有目录（仅 debug APK 支持）：
+APK 输出：`android/app/build/outputs/apk/debug/app-debug.apk`。应用 ID：`com.topsai.dishwasher`。测试包 ID：`com.topsai.dishwasher.test`。
+
+## 手机测试
+
+ADB 需要已安装，手机开启 USB 调试并授权本机。在仓库根目录执行：
+
+```powershell
+.\android\tools\run_device_tests.ps1 -Adb adb
+```
+
+脚本构建、覆盖安装应用与测试 APK，并运行 instrumentation。常规测试不点击真实设备控制；存储测试使用隔离目录。测试完成后可卸载测试包。安全锁屏或系统悬浮层可能影响涉及窗口焦点和返回键的 UI 测试，应在解锁且可交互时运行。
+
+以下为显式的只读实机验收，不属于默认测试扫描；需要应用已保存有效凭据，手机与设备在同一 Wi-Fi，且测试 APK 已安装：
+
+```powershell
+adb shell am instrument -w -e class com.topsai.dishwasher.PairingInstrumentedTest#verifyLiveDiscoveryAndSavedCredentials com.topsai.dishwasher.test/android.test.InstrumentationTestRunner
+```
+
+该方法搜索并按设备 ID 匹配，随后认证和读取状态，不发送物理控制，也不更新保存的配置。
+
+## 调试配对与密钥检查
+
+常规使用优先通过设备页配对。开发时也可在 `android` 目录执行：
 
 ```powershell
 python tools/provision_debug.py --adb adb --config ../dishwasher.json
 python tools/scan_secrets.py --config ../dishwasher.json --apk app/build/outputs/apk/debug/app-debug.apk
 ```
 
-导入脚本通过标准输入传输，不把 Token/Key 放入命令行；应用校验后加密，删除私有 `bootstrap.json`。不要提交或共享实际配对 JSON。APK 及源码均不含实际配对信息；扫描解压后的 APK、Git 跟踪内容和暂存变更。
+私有 `dishwasher.json` 需要由开发者提供，仓库不包含。导入脚本通过标准输入传输，不把 Token/Key 放进命令行；仅 debug APK 支持，验证并加密保存后删除临时 `bootstrap.json`。密钥检查覆盖 Git 跟踪文件、暂存差异和解压后的 APK。
 
-## 本机验收
+## 验证范围
 
-2026-10-07 在华为 TAS-AN00、Android 12/API 31 上完成安装，Wi-Fi 地址 192.0.2.4，直连洗碗机 192.0.2.7:6444。真实读取温度 26℃、待机/取消、空闲、剩余 0 分钟。电脑仅用于安装/测试，不作为应用通信中转。
+1.1.0 在当前连接的 PKG110 / Android 15（API 35）手机上安装，设备页入口与实机搜索、现有凭据认证及状态读取通过。Android 26 项单元测试通过，构建与 lint 无错误。更早版本另有 Android 12 设备验收，不能据此声称所有系统版本均已实测。
 
-单元测试覆盖 Python 协议对照、拆包粘包、认证/摘要失败、白名单控制、缺失值、断线保留旧状态、重复提交和失败写入不重发；手机测试覆盖 Keystore 加密、损坏密文拒绝、24 字段、断线禁用控制和旋转选择恢复。
+真实美居账号登录／获取新密钥未实测；模拟服务与 Python 对照测试验证签名和请求结构。测试未主动执行物理控制，模式兼容性及设备执行效果仍需用户确认。详细历史证据见 [验证记录](VERIFICATION.md)。
 
-未执行实际电源、童锁、保管或洗涤命令。它们的协议和提交规则经过测试，物理执行效果需用户实际操作确认。仅支持上述 E1/V3 型号配置，不能承诺覆盖美居 App 全部功能。
-
-## 排查
-
-- “Wi-Fi 未连接”：连接家庭 Wi-Fi；移动网络不能直接到达家庭设备。Socket 显式使用 Wi-Fi 网络，即使移动网络仍开启。
-- 连接失败或超时：检查设备 IP、端口、Wi-Fi 客户端隔离和设备在线情况；“设备”页可修改 IP/端口。
-- 认证/校验失败：重新导入有效配对文件，避免修改 Token/Key。
-- 保存配置无法解密：重新导入；卸载应用会删除本机配置。
-
-协议实现来源及 MIT 原文见 THIRD_PARTY_NOTICES.md 和 app/src/main/assets/midea-lan-LICENSE.txt。
-
-### 页面导航
-
-打开应用默认进入主页：重点状态、洗涤启动和保管按钮。右上角齿轮菜单进入“状态”（全部参数）、“控制”（童锁）、“设备”（配对与地址配置）。子页面左上角和系统返回键均可返回主页。保管开启时按钮为绿色，关闭时为蓝色。
-
-电源开关位于主页独立的白色圆角连接栏，与连接状态和更新时间并排，子页面隐藏。关闭电源仍需确认。
-
-自动刷新间隔为2秒；Python的手动刷新和重连入口位于设备子页面。
-
-主页不显示手动刷新/重连按钮；手动入口集中在设备页，两个版本持续每2秒自动刷新。
+故障排查见 [连接指南](../docs/CONNECTION.md#常见问题)。协议来源及 MIT 许可见 [第三方说明](THIRD_PARTY_NOTICES.md)。

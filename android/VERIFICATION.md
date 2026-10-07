@@ -1,8 +1,19 @@
 # 交付与验证记录
 
-日期：2026-10-07。应用：洗碗机面板，com.topsai.dishwasher，1.0.22，debug APK。
+## 当前版本：1.1.0
 
-## 验证结果
+2026-10-07（北京时间），应用 ID `com.topsai.dishwasher`，versionCode 24，debug APK。详细证据见本文末尾的 1.1.0 配对设置记录。
+
+- Python 22 项测试、Android 26 项单元测试通过；Android 构建与 lint 无错误。
+- PKG110 / Android 15 手机上覆盖安装，设备页入口与实机只读发现、已有密钥认证、状态读取通过。
+- 真实美居账号获取新密钥未实测；验证码登录未实现；没有为测试主动发送物理控制。
+- 配置备份、协议范围与故障处理见 [连接指南](../docs/CONNECTION.md)，构建命令见 [Android 说明](README.md)。
+
+以下保留历次验收记录。测试数量、手机和发布状态均描述当时情况，并非当前全套结果；下载版本以 [GitHub Releases](https://github.com/topsai/midea-dishwasher-panel/releases/latest) 为准。
+
+## 初始验收与实现记录
+
+### 初始验证结果
 
 - Java/JUnit 全套 22 项通过；Android 手机 instrumentation 常规 5 项通过，另有实机 Wi-Fi 关闭验收 1 项通过。
 - Lint 0 错误，3 个警告：一处冗余 SDK 版本检查及两处中文文本拼接。构建与签名安装成功。
