@@ -256,7 +256,7 @@ class DishwasherApp:
         self.mode_combo = ttk.Combobox(wash, textvariable=self.mode, state='disabled', width=24, style='Wash.TCombobox', font=('Microsoft YaHei UI', 12))
         self.mode_combo.pack(fill='x', pady=(0, 10))
         button = self.wash_start = ttk.Button(wash, text='▶  启动洗涤', command=self.start_wash, style='Start.TButton')
-        button.pack(fill='x')
+        button.pack(fill='x', side='bottom')
         self.controls.append(button)
         storage = ttk.Frame(action_cards, padding=(18, 14), style='Storage.TFrame')
         storage.grid(row=0, column=1, sticky='nsew', padx=(6, 0))

@@ -68,6 +68,14 @@ class NavigationTests(unittest.TestCase):
         app.set_controls()
         self.assertTrue(app.power_toggle.instate(['disabled']))
 
+    def test_action_buttons_align_for_multiline_storage(self):
+        app = self.app
+        for summary in ('保管状态未上报', '保管：开启\n剩余：72 小时\n当前未运行', '保管：关闭\n剩余：0 小时\n当前未运行'):
+            app.wash_storage_status.set(summary)
+            self.root.update()
+            self.assertEqual(app.wash_start.winfo_rooty(), app.storage_toggle.winfo_rooty())
+            self.assertEqual(app.wash_start.winfo_height(), app.storage_toggle.winfo_height())
+
     def test_navigation_retains_mode_and_live_parameters(self):
         app = self.app
         self.root.after_cancel(app.poll_id)
