@@ -72,6 +72,7 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
   else safe(()->actions.setSwitch(field,value,true));
  }
  private void buildConfig(){
+  LinearLayout about=card(pages[PAGE_DEVICE]);about.addView(text("关于项目",17,INK));about.addView(text("作者：topsai (范斯特洛夫斯基)",13,INK));about.addView(text("项目地址",13,MUTED));TextView projectLink=text("https://github.com/topsai/midea-dishwasher-panel",13,BLUE);projectLink.setAutoLinkMask(android.text.util.Linkify.WEB_URLS);projectLink.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());projectLink.setLinkTextColor(BLUE);about.addView(projectLink);
   pairingSettings=new PairingSettings(this,pages[PAGE_DEVICE],new PairingSettings.Host(){public DeviceConfig current(){return config;}public Network wifi(){return findWifi();}public void save(DeviceConfig c){persist(c);}public void refresh(){MainActivity.this.refresh();}public void importJson(){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");startActivityForResult(i,10);}});
  }
  private void updateConfigFields(){if(configSummary==null)return;configSummary.setText(config==null?"尚未导入配对配置":("已配置 · E1/V3 · ID "+config.deviceId));address.setText(config==null?"":config.ipAddress);port.setText(config==null?"6444":String.valueOf(config.port));if(configError!=null)configSummary.setText(configError);}

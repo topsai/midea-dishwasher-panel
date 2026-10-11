@@ -3,6 +3,7 @@ import json
 import queue
 import threading
 import time
+import webbrowser
 import tkinter as tk
 from datetime import datetime
 from pathlib import Path
@@ -353,6 +354,11 @@ class DishwasherApp:
         self.reconnect_button.pack(side='left')
         self.refresh_button = ttk.Button(device_actions, text='立即刷新', command=lambda: self.request('refresh'))
         self.refresh_button.pack(side='left', padx=8)
+        about = ttk.LabelFrame(device_content, text='关于项目', padding=16)
+        about.pack(fill='x', pady=(12, 0))
+        ttk.Label(about, text='作者：topsai (范斯特洛夫斯基)').pack(anchor='w')
+        ttk.Label(about, text='项目地址：https://github.com/topsai/midea-dishwasher-panel', wraplength=900).pack(anchor='w', pady=(8, 0))
+        ttk.Button(about, text='打开 GitHub 项目', command=lambda: webbrowser.open('https://github.com/topsai/midea-dishwasher-panel', new=2)).pack(anchor='w', pady=(8, 0))
         self.device_settings = DeviceSettings(self, device_content, config_path or default_config_path())
         ttk.Label(device_content, text='操作记录').pack(anchor='w', pady=(16, 4))
         self.feedback = tk.StringVar(value='连接成功后可操作；配对参数不会显示在界面中。')

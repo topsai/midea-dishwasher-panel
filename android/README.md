@@ -1,6 +1,6 @@
 # Android 洗碗机面板
 
-原生 Java App，手机通过家庭 Wi-Fi 直接连接 7600V1E0（E1/V3、subtype 3）。无需电脑在线。当前版本 **1.1.0**（versionCode 24），最低 Android 8.0 / API 26。
+原生 Java App，手机通过家庭 Wi-Fi 直接连接 7600V1E0（E1/V3、subtype 3）。无需电脑在线。当前版本 **1.1.1**（versionCode 25），最低 Android 8.0 / API 26。
 
 同一发布页还提供 [Python 独立源码包和 Windows EXE 包](../desktop/README.md)。
 
