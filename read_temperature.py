@@ -1,21 +1,20 @@
 """直接通过局域网读取美的洗碗机温度，不依赖 中转服务。"""
-import json
 from datetime import datetime
 from pathlib import Path
 
-from midealan.const import ProtocolVersion
-from midealan.devices.e1 import MideaAppliance
+from dishwasher_pairing import connect_paired, read_config, write_config
 
 
 def main():
     config_path = Path(__file__).with_name("dishwasher.json")
-    config = json.loads(config_path.read_text(encoding="utf-8"))
-    config["device_protocol"] = ProtocolVersion(config["device_protocol"])
-    device = MideaAppliance(**config)
+    config = read_config(config_path)
+    device, verified = connect_paired(config)
     try:
-        # 建立 V3 加密连接并查询状态；不发送任何控制命令。
-        if not device.connect(check_protocol=True):
-            raise RuntimeError("无法连接洗碗机，请检查网络、IP 和配对参数。")
+        if verified != config:
+            try:
+                write_config(config_path, verified)
+            except OSError:
+                print("已通过新地址连接，但配置目录不可写，地址未保存。")
         temperature = device.get_attribute("temperature")
         if temperature is None:
             raise RuntimeError("设备未返回温度，本次没有可用读数。")

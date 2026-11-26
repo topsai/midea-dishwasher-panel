@@ -1,8 +1,17 @@
 package com.topsai.dishwasher.device;
+import com.topsai.dishwasher.pairing.LanDiscovery;
+import java.io.IOException;
+import java.util.List;
 import com.topsai.dishwasher.model.*;import com.topsai.dishwasher.protocol.*;import java.net.*;import java.util.concurrent.*;
 /** Serial network executor with generation-fenced callbacks and at-most-once writes. */
 public class DeviceRepository {
  public interface Listener{void onUpdate(Snapshot snapshot);}public interface SessionFactory{DeviceSession open(DeviceConfig config);}
+ public interface Discovery { List<LanDiscovery.Found> scan(DeviceConfig saved) throws Exception; }
+ public interface AddressListener { void verified(DeviceConfig saved, DeviceConfig recovered); }
+ private final Discovery discovery;
+ private final AddressListener addressListener;
+ private long lastDiscoveryNanos;
+ private boolean hasScanned;
  public static final class Snapshot{
   public final DishwasherState state;public final boolean connected,busy;public final long updatedAtMillis;public final String message;
   public Snapshot(DishwasherState s,boolean c,boolean b,long t,String m){state=s;connected=c;busy=b;updatedAtMillis=t;message=m;}
@@ -10,8 +19,18 @@ public class DeviceRepository {
  private final Executor callbacks;private final Listener listener;private final SessionFactory factory;
  private final ScheduledExecutorService network=Executors.newSingleThreadScheduledExecutor();
  private ScheduledFuture<?> polling;private DeviceConfig config;private DeviceSession session;private boolean active,connected,busy,refreshPending;private long generation,updatedAt;private DishwasherState state;private String message="未连接";
- public DeviceRepository(Executor callbackExecutor,Listener listener,SessionFactory factory){callbacks=callbackExecutor;this.listener=listener;this.factory=factory;}
+ public DeviceRepository(Executor callbackExecutor,Listener listener,SessionFactory factory){this(callbackExecutor,listener,factory,null,null);}
+ public DeviceRepository(Executor callbacks, Listener listener, SessionFactory factory,
+                         Discovery discovery, AddressListener addressListener) {
+  this.callbacks=callbacks;
+  this.listener=listener;
+  this.factory=factory;
+  this.discovery=discovery;
+  this.addressListener=addressListener;
+ }
  public synchronized void start(DeviceConfig c){
+  if (active && connected && config == c) return;
+  hasScanned=false;
   stop();config=c;active=true;long g=++generation;message="正在连接";emit(g);
   polling=network.scheduleWithFixedDelay(()->read(g),0,2,TimeUnit.SECONDS);
  }
@@ -25,15 +44,71 @@ public class DeviceRepository {
   if(!active||refreshPending||busy)return;refreshPending=true;long g=generation;
   network.execute(()->{try{read(g);}finally{synchronized(this){if(g==generation)refreshPending=false;}}});
  }
- private void read(long g){
-  DeviceSession current;
-  synchronized(this){if(!active||g!=generation)return;if(session==null)session=factory.open(config);current=session;}
-  try{
-   synchronized(this){if(!active||g!=generation)return;}
-   boolean needsConnect;synchronized(this){needsConnect=!connected;}
-   if(needsConnect)current.connect();DishwasherState next=current.query();
-   synchronized(this){if(!active||g!=generation)return;state=next;updatedAt=System.currentTimeMillis();connected=true;message="已连接 · 手机直连";emit(g);}
-  }catch(Exception e){fail(g,e,false);}
+ private synchronized boolean current(long g) {
+  return active && g == generation;
+ }
+
+ private void read(long g) {
+  DeviceConfig saved;
+  synchronized (this) {
+   if (!current(g)) return;
+   saved=config;
+  }
+  try {
+   readEndpoint(g, saved, false);
+  } catch (Exception firstFailure) {
+   fail(g, firstFailure, false);
+   if (firstFailure instanceof WifiUnavailableException || !beginDiscovery(g)) return;
+   try {
+    for (LanDiscovery.Found found : discovery.scan(saved)) {
+     if (found.id != saved.deviceId || !found.supported()) continue;
+     if (found.ip.equals(saved.ipAddress) && found.port == saved.port) continue;
+     DeviceConfig candidate=new DeviceConfig(saved.deviceId, found.ip, found.port, saved.token, saved.key);
+     readEndpoint(g, candidate, true);
+     return;
+    }
+    fail(g, firstFailure, false);
+   } catch (Exception recoveryFailure) {
+    fail(g, recoveryFailure, false);
+   }
+  }
+ }
+
+ private synchronized boolean beginDiscovery(long g) {
+  if (!current(g) || discovery == null) return false;
+  long now=System.nanoTime();
+  if (hasScanned && now-lastDiscoveryNanos < TimeUnit.SECONDS.toNanos(30)) return false;
+  hasScanned=true;
+  lastDiscoveryNanos=now;
+  message="正在局域网查找已配对的洗碗机";
+  emit(g);
+  return true;
+ }
+
+ private void readEndpoint(long g, DeviceConfig endpoint, boolean changed) throws IOException {
+  DeviceSession currentSession;
+  boolean needsConnect;
+  synchronized (this) {
+   if (!current(g)) return;
+   if (session == null) session=factory.open(endpoint);
+   currentSession=session;
+   needsConnect=!connected;
+  }
+  if (needsConnect) currentSession.connect();
+  DishwasherState next=currentSession.query();
+  synchronized (this) {
+   if (!current(g)) return;
+   if (changed) {
+    DeviceConfig previous=config;
+    config=endpoint;
+    addressListener.verified(previous,endpoint);
+   }
+   state=next;
+   updatedAt=System.currentTimeMillis();
+   connected=true;
+   message="已连接 · 手机直连";
+   emit(g);
+  }
  }
  public synchronized void submitSwitch(String field,boolean value){requireReady();submit(E1Protocol.switchCommand(config.deviceId,field,value));}
  public synchronized void submitMode(int mode){requireReady();submit(E1Protocol.modeCommand(config.deviceId,mode));}
@@ -53,7 +128,7 @@ public class DeviceRepository {
  private synchronized void fail(long g,Exception error,boolean write){
   if(!active||g!=generation)return;
   if(session!=null)session.close();session=null;connected=false;
-  String reason=error instanceof SocketTimeoutException?"读取超时":error instanceof IllegalArgumentException?"认证或报文校验失败":"连接失败，请检查手机 Wi-Fi、设备 IP 和局域网";
+  String reason=error instanceof WifiUnavailableException?"Wi-Fi 未连接，请连接洗碗机所在局域网":error instanceof SocketTimeoutException?"读取超时":error instanceof IllegalArgumentException?"认证或报文校验失败":"连接失败，请检查手机 Wi-Fi、设备 IP 和局域网";
   message=(write?"发送失败，未自动重试 · ":"")+reason+" · 可能过期";emit(g);
  }
  private synchronized void emit(long g){

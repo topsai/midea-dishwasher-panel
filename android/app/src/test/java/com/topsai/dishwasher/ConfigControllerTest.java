@@ -16,4 +16,44 @@ public class ConfigControllerTest{
    assertEquals("192.168.1.8",disk.get().ipAddress);assertEquals("192.0.2.7",oldView.get().ipAddress);
   }finally{release.countDown();c.close();}
  }
+
+ @Test public void storageFailureKeepsVerifiedAddressForCurrentSession() throws Exception {
+  DeviceConfig initial=DeviceConfig.parse(DeviceConfigTest.fixture());
+  DeviceConfig recovered=new DeviceConfig(initial.deviceId,"192.0.2.10",6444,initial.token,initial.key);
+  AtomicInteger attempts=new AtomicInteger();
+  ConfigController.Persistence store=new ConfigController.Persistence() {
+   public DeviceConfig load(){return initial;}
+   public void save(DeviceConfig cfg) throws IOException {
+    attempts.incrementAndGet();throw new IOException("storage unavailable");
+   }
+  };
+  try (ConfigController controller=new ConfigController(store,Runnable::run)) {
+   CountDownLatch warning=new CountDownLatch(1);
+   controller.subscribe((cfg,error) -> {if (cfg==recovered && error!=null) warning.countDown();});
+   controller.saveRecoveredAddress(initial,recovered);
+   assertTrue(warning.await(2,TimeUnit.SECONDS));
+   assertEquals(1,attempts.get());
+  }
+ }
+
+ @Test public void staleRecoveryCannotReplaceNewManualConfiguration() throws Exception {
+  DeviceConfig previous=DeviceConfig.parse(DeviceConfigTest.fixture());
+  DeviceConfig manual=new DeviceConfig(previous.deviceId,"192.0.2.10",6444,previous.token,previous.key);
+  DeviceConfig verified=new DeviceConfig(previous.deviceId,"192.0.2.11",6444,previous.token,previous.key);
+  AtomicReference<DeviceConfig> disk=new AtomicReference<>(previous);
+  AtomicInteger writes=new AtomicInteger();
+  ConfigController.Persistence store=new ConfigController.Persistence() {
+   public DeviceConfig load(){return disk.get();}
+   public void save(DeviceConfig cfg){disk.set(cfg);writes.incrementAndGet();}
+  };
+  try (ConfigController controller=new ConfigController(store,Runnable::run)) {
+   CountDownLatch saved=new CountDownLatch(1);
+   controller.subscribe((cfg,error) -> {if (cfg==verified) saved.countDown();});
+   controller.save(manual);
+   controller.saveRecoveredAddress(previous,previous);
+   controller.saveRecoveredAddress(manual,verified);
+   assertTrue(saved.await(2,TimeUnit.SECONDS));
+   assertSame(verified,disk.get());assertEquals(2,writes.get());
+  }
+ }
 }

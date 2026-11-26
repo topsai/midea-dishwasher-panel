@@ -14,6 +14,18 @@ public final class ConfigController implements AutoCloseable {
  private synchronized void publish(DeviceConfig config,String error){current=config;this.error=error;ready=true;for(Listener listener:new ArrayList<>(listeners))notifyOne(listener,config,error);}
  private synchronized void fail(){publish(current,"导入或保存失败，请检查配对文件、IP 和端口");}
  public void importJson(InputSource source){files.execute(()->{try(InputStream input=source.open()){if(input==null)throw new IOException();ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] b=new byte[1024];int n;while((n=input.read(b))!=-1){if(out.size()+n>32768)throw new IOException();out.write(b,0,n);}DeviceConfig next=DeviceConfig.parse(new String(out.toByteArray(),StandardCharsets.UTF_8));persistence.save(next);publish(next,null);}catch(Exception e){fail();}});}
+ /** The disk executor serializes this compare-and-save with manual imports and edits. */
+ public void saveRecoveredAddress(DeviceConfig previous, DeviceConfig recovered) {
+  files.execute(() -> {
+   if (current != previous) return;
+   try {
+    persistence.save(recovered);
+    publish(recovered,null);
+   } catch (IOException error) {
+    publish(recovered,"已连接洗碗机，但新地址未能保存。下次启动将重新查找设备");
+   }
+  });
+ }
  public void save(DeviceConfig next){files.execute(()->{try{persistence.save(next);publish(next,null);}catch(Exception e){fail();}});}
  @Override public synchronized void close(){listeners.clear();files.shutdownNow();}
 }

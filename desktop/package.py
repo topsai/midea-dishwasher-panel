@@ -6,7 +6,7 @@ import subprocess
 import sys
 import zipfile
 
-VERSION='1.1.1'
+VERSION='1.1.2'
 ROOT=Path(__file__).resolve().parents[1]
 MODULES=['dishwasher_gui.py','dishwasher_settings.py','dishwasher_pairing.py','dishwasher_runtime.py']
 

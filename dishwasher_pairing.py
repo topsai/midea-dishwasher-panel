@@ -51,17 +51,48 @@ def scan_devices(hint=None):
             pass
     return list(devices.values())
 
-def verify_config(c):
-    cfg=validate_config(c)
-    cfg['device_protocol']=ProtocolVersion(cfg['device_protocol'])
-    device=MideaAppliance(**cfg)
+class ConnectionUnavailable(ConnectionError):
+    """An actionable, credential-free connection failure safe to show in the panel."""
+
+
+def open_session(config):
+    device = MideaAppliance(**dict(config, device_protocol=ProtocolVersion(config['device_protocol'])))
     try:
-        if not device.connect(check_protocol=True): raise ValueError()
-        device.refresh_status(check_protocol=True)
+        # The checked connect authenticates and waits for the initial status query.
+        if device.connect(check_protocol=True):
+            return device
     except Exception:
+        pass
+    device.close_socket()
+    raise ConnectionUnavailable('保存的地址未能完成认证和状态读取。')
+
+
+def connect_paired(config, rediscover=True):
+    config = validate_config(config)
+    try:
+        return open_session(config), config
+    except ConnectionUnavailable:
+        if not rediscover:
+            raise
+    for found in scan_devices():
+        if not supported(found) or found.get('device_id') != config['device_id']:
+            continue
+        candidate = validate_config(dict(config, ip_address=found['ip_address'], port=found['port']))
+        if candidate == config:
+            raise ConnectionUnavailable('已找到原地址的洗碗机，但连接验证失败。请检查网络与配对密钥。')
+        try:
+            return open_session(candidate), candidate
+        except ConnectionUnavailable:
+            raise ConnectionUnavailable('已找到洗碗机的新地址，但未能认证并读取状态。请在设备页验证配对密钥。') from None
+    raise ConnectionUnavailable('未在局域网找到已配对的洗碗机。请检查同一 Wi-Fi，程序将自动重试。')
+
+
+def verify_config(c):
+    try:
+        device = open_session(validate_config(c))
+    except ConnectionUnavailable:
         raise ValueError('连接验证失败，请检查 Wi-Fi、设备地址和密钥；旧配置已保留。') from None
-    finally:
-        device.close_socket()
+    device.close_socket()
 
 async def cloud_config(account, password, target):
     if not account.strip() or not password: raise ValueError('请输入美居账号和密码。')

@@ -1,6 +1,6 @@
 # Python 桌面版下载与运行
 
-版本 1.1.1，支持 7600V1E0 / E1 / V3 / subtype 3。通过局域网直接连接洗碗机。
+版本 1.1.2，支持 7600V1E0 / E1 / V3 / subtype 3。通过局域网直接连接洗碗机。
 
 ![Python 主页](https://raw.githubusercontent.com/topsai/midea-dishwasher-panel/main/docs/images/python-home.png)
 
@@ -8,7 +8,7 @@
 
 ## Windows 可执行版
 
-从 [GitHub Releases](https://github.com/topsai/midea-dishwasher-panel/releases/tag/v1.1.1) 下载 `dishwasher-python-windows-x64-v1.1.1.zip`，解压到当前用户可写的目录，双击 `DishwasherPanel.exe`。无需安装 Python，也不需要管理员权限。不要直接在压缩包内运行。
+从 [GitHub Releases](https://github.com/topsai/midea-dishwasher-panel/releases/tag/v1.1.2) 下载 `dishwasher-python-windows-x64-v1.1.2.zip`，解压到当前用户可写的目录，双击 `DishwasherPanel.exe`。无需安装 Python，也不需要管理员权限。不要直接在压缩包内运行。
 
 这是基于 Python 3.14 的 Windows x64 构建，本机完成启动验证；其他系统、ARM 和 32 位环境没有实测。EXE 首次启动会解压运行组件，可能需要等待几秒。
 
@@ -18,7 +18,7 @@
 
 ## Python 源码版
 
-下载 `dishwasher-python-source-v1.1.1.zip` 并解压。需要 Python 3.12+ 与 Tkinter；Windows 双击 `start_panel.bat`，首次启动自动创建 `.venv` 并安装依赖，需要互联网。也可在解压目录运行：
+下载 `dishwasher-python-source-v1.1.2.zip` 并解压。需要 Python 3.12+ 与 Tkinter；Windows 双击 `start_panel.bat`，首次启动自动创建 `.venv` 并安装依赖，需要互联网。也可在解压目录运行：
 
 ```powershell
 python -m venv .venv

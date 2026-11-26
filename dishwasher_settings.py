@@ -72,8 +72,36 @@ class DeviceSettings:
         self.app.worker.commands.put(('configure',(c,self.app.config_generation)))
         self.update_info();self.status.set('配置已保存，正在重新连接。')
 
-    def save_verified(self,c):
-        pairing.verify_config(c);pairing.write_config(self.config_path,c);return c
+    def recovered_address(self, ip, port):
+        old = self.app.config
+        updated = dict(old, ip_address=ip, port=port)
+        # Leave an in-progress manual edit (or another selected appliance) intact.
+        if not self.target and (self.ip.get(), self.port.get()) == (old['ip_address'], str(old['port'])):
+            self.ip.set(ip)
+            self.port.set(str(port))
+        self.app.config = updated
+        try:
+            pairing.write_config(self.config_path, updated)
+        except OSError:
+            message = '已通过新地址连接，但未能保存地址。请检查配置目录是否可写。'
+        else:
+            message = f'已找回洗碗机并保存新地址 {ip}:{port}。'
+        self.status.set(message)
+        self.app.feedback.set(message)
+        self.app.log_message(message)
+
+    def persist_verified(self, config):
+        # Serialize config writes with automatic recovery on the Tk thread.
+        try:
+            pairing.write_config(self.config_path, config)
+        except OSError:
+            self.status.set('配置未保存，请检查配置目录是否可写。')
+            return
+        self.apply(config)
+
+    def verify_candidate(self, config):
+        pairing.verify_config(config)
+        return config
 
     def candidate(self):
         c=dict(self.target or self.app.config)
@@ -103,7 +131,7 @@ class DeviceSettings:
     def save_address(self):
         try:c=pairing.validate_config(self.candidate())
         except ValueError as e:self.status.set(str(e));return
-        self.run(lambda:self.save_verified(c),self.apply)
+        self.run(lambda:self.verify_candidate(c),self.persist_verified)
 
     def verify(self):
         c=dict(self.app.config)
@@ -115,14 +143,12 @@ class DeviceSettings:
         account,password=self.account.get(),self.password.get()
         self.password.set('')
         def task():
-            result=asyncio.run(pairing.cloud_config(account,password,c))
-            pairing.write_config(self.config_path,result)
-            return result
-        self.run(task,self.apply)
+            return asyncio.run(pairing.cloud_config(account,password,c))
+        self.run(task,self.persist_verified)
 
     def import_config(self):
         path=filedialog.askopenfilename(parent=self.app.root,title='导入配对配置',filetypes=[('JSON','*.json')])
-        if path:self.run(lambda:self.save_verified(pairing.read_config(path)),self.apply)
+        if path:self.run(lambda:self.verify_candidate(pairing.read_config(path)),self.persist_verified)
 
     def export_config(self):
         c=dict(self.app.config)

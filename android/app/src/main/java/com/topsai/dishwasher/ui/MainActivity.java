@@ -1,4 +1,5 @@
 package com.topsai.dishwasher.ui;
+import com.topsai.dishwasher.pairing.LanDiscovery;
 import android.app.*;import android.os.*;import android.content.*;import android.graphics.Color;import android.graphics.Typeface;import android.graphics.drawable.GradientDrawable;import android.net.*;import android.view.*;import android.widget.*;
 import com.topsai.dishwasher.device.*;import com.topsai.dishwasher.model.*;import com.topsai.dishwasher.storage.*;import java.io.*;import java.text.SimpleDateFormat;import java.util.*;import java.util.concurrent.*;
 /** Foreground-only native Chinese LAN panel. No pairing secrets are displayed. */
@@ -17,7 +18,12 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
   super.onCreate(saved);getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
   if(saved!=null){page=saved.getInt("page",0);selectedMode=saved.getInt("mode",2);}
   configController=ConfigManager.get(this);
-  repository=new DeviceRepository(r->main.post(r),this,c->new WifiDeviceSession(c,findWifi()));actions=new ControlActions(repository);build();configController.subscribe(configListener);
+  repository=new DeviceRepository(r->main.post(r),this,c->new WifiDeviceSession(c,findWifi()), savedConfig -> {
+   Network wifi=findWifi();
+   ConnectivityManager cm=(ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE);
+   return LanDiscovery.scan(wifi, wifi==null ? null : cm.getLinkProperties(wifi), savedConfig.ipAddress);
+  },configController::saveRecoveredAddress);
+  actions=new ControlActions(repository);build();configController.subscribe(configListener);
  }
  private int dp(int n){return (int)(n*getResources().getDisplayMetrics().density+0.5f);}
  private TextView text(String s,int size,int color){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);t.setPadding(0,dp(4),0,dp(4));return t;}
@@ -79,7 +85,6 @@ public class MainActivity extends Activity implements DeviceRepository.Listener 
  private Network findWifi(){ConnectivityManager cm=(ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE);for(Network n:cm.getAllNetworks()){NetworkCapabilities c=cm.getNetworkCapabilities(n);if(c!=null&&c.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))return n;}return null;}
  private void connectIfReady(){
   if(config==null){repository.stop(configError!=null?configError:"请在「设备」页导入配对文件");return;}
-  if(findWifi()==null){repository.stop("Wi-Fi 未连接，请连接洗碗机所在局域网");return;}
   repository.start(config);
  }
  private void refresh(){if(!started)return;if(snapshot!=null&&snapshot.connected)repository.refresh();else connectIfReady();}

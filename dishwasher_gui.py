@@ -9,11 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from tkinter import messagebox, ttk
 from dishwasher_settings import DeviceSettings
-from dishwasher_pairing import DEFAULT, read_config
+from dishwasher_pairing import ConnectionUnavailable, DEFAULT, connect_paired, read_config
 from dishwasher_runtime import config_path as default_config_path
-
-from midealan.const import ProtocolVersion
-from midealan.devices.e1 import MideaAppliance
 
 FIELDS = {
     'power': '电源', 'status': '运行状态', 'mode': '洗涤模式',
@@ -82,6 +79,7 @@ class DeviceWorker(threading.Thread):
         self.stopping = threading.Event()
         self.device = None
         self.generation = 0
+        self.next_discovery = 0
 
     def emit(self, event, payload):
         self.events.put((event, payload, self.generation))
@@ -113,15 +111,20 @@ class DeviceWorker(threading.Thread):
                         self.device.close_socket()
                         self.device = None
                     if self.device is None:
+                        if action not in ('refresh', 'reconnect'):
+                            raise ConnectionUnavailable('连接已中断。恢复后请重新确认操作。')
+                        if not self.config.get('device_id'):
+                            raise ConnectionUnavailable('请先在设备页导入配置或配对洗碗机。')
                         # 重连后丢弃旧的快照，不能显示成新的设备状态。
                         self.emit('connecting', None)
-                        cfg = dict(self.config)
-                        cfg['device_protocol'] = ProtocolVersion(cfg['device_protocol'])
-                        candidate = MideaAppliance(**cfg)
-                        if not candidate.connect(check_protocol=True):
-                            candidate.close_socket()
-                            raise ConnectionError('无法连接或认证，请检查设备网络和配对参数。')
-                        self.device = candidate
+                        discover_now = action == 'reconnect' or time.monotonic() >= self.next_discovery
+                        if discover_now:
+                            self.next_discovery = time.monotonic() + 30
+                        self.device, verified = connect_paired(self.config, rediscover=discover_now)
+                        self.next_discovery = 0
+                        if verified != self.config:
+                            self.config = verified
+                            self.emit('recovered_address', (verified['ip_address'], verified['port']))
                     elif action in ('refresh', 'reconnect'):
                         self.device.refresh_status(check_protocol=True)
                     if action not in ('refresh', 'reconnect'):
@@ -134,9 +137,10 @@ class DeviceWorker(threading.Thread):
                         self.device.refresh_status(check_protocol=True)
                     self.emit('snapshot', (self.device.attributes, self.device.modes))
                     deadline = time.monotonic() + 2
-                except Exception:
+                except Exception as exc:
                     # 不把可能包含配对数据的库异常写入界面或日志。
-                    self.emit('error', '读取／发送失败，请检查设备网络后重连。失败操作不会自动重发。')
+                    self.emit('error', str(exc) if isinstance(exc, ConnectionUnavailable) else
+                              '读取／发送失败，请检查设备网络后重连。失败操作不会自动重发。')
                     if self.device:
                         self.device.close_socket()
                         self.device = None
@@ -548,6 +552,8 @@ class DishwasherApp:
                     text = f'已发送：{FIELDS.get(field, field)} → {label}；以设备实际返回状态为准。'
                     self.feedback.set(text)
                     self.log_message(text)
+                elif event == 'recovered_address':
+                    self.device_settings.recovered_address(*payload)
                 elif event == 'settings':
                     settings, success, result = payload
                     settings.finish(success, result)

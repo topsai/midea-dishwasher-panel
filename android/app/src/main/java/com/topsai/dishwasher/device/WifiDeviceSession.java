@@ -4,5 +4,5 @@ import android.net.Network;import com.topsai.dishwasher.model.DeviceConfig;impor
 public final class WifiDeviceSession extends DeviceSession {
  private final Network network;
  public WifiDeviceSession(DeviceConfig config,Network network){super(config);this.network=network;}
- @Override protected Socket openSocket()throws IOException{if(network==null)throw new IOException("Wi-Fi disconnected");return network.getSocketFactory().createSocket();}
+ @Override protected Socket openSocket()throws IOException{if(network==null)throw new WifiUnavailableException();return network.getSocketFactory().createSocket();}
 }

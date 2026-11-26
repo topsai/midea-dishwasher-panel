@@ -2,7 +2,7 @@
 
 Python 桌面版与原生 Android App，通过家庭局域网直接连接洗碗机，展示状态并控制设备。**日常使用不需要电脑中转或美居云端在线。** 首次从美居获取设备密钥需要互联网和绑定该设备的个人账号，也可以导入已有配置。
 
-当前版本 **1.1.1**。仅适配已验证的 **7600V1E0 / E1 / V3 / subtype 3**，暂不支持其他型号，也不能覆盖美居 App 的全部功能。本项目与美的官方无隶属关系。
+当前版本 **1.1.2**。仅适配已验证的 **7600V1E0 / E1 / V3 / subtype 3**，暂不支持其他型号，也不能覆盖美居 App 的全部功能。本项目与美的官方无隶属关系。
 
 - [下载 APK 和完整源码](https://github.com/topsai/midea-dishwasher-panel/releases/latest)
 - [连接、配对与备份恢复](docs/CONNECTION.md)
@@ -57,7 +57,7 @@ Python 桌面版与原生 Android App，通过家庭局域网直接连接洗碗�
 
 ## Python 安装和运行
 
-Windows 用户可直接下载 `dishwasher-python-windows-x64-v1.1.1.zip`，解压后双击 `DishwasherPanel.exe`，无需安装 Python。配置保存在 EXE 同目录，请解压到当前用户可写位置。另提供独立源码包 `dishwasher-python-source-v1.1.1.zip`，使用下面的方式运行。
+Windows 用户可直接下载 `dishwasher-python-windows-x64-v1.1.2.zip`，解压后双击 `DishwasherPanel.exe`，无需安装 Python。配置保存在 EXE 同目录，请解压到当前用户可写位置。另提供独立源码包 `dishwasher-python-source-v1.1.2.zip`，使用下面的方式运行。
 
 需要 **Python 3.12+** 和 Tkinter，依赖固定为 `midea-lan==2026.9.2`；本机实测 Python 3.14。电脑与洗碗机需要连接同一局域网。
 

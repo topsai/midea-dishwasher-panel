@@ -2,7 +2,10 @@
 import importlib.util
 from pathlib import Path
 import tkinter as tk
+import tempfile
 import unittest
+from unittest.mock import patch
+from dishwasher_pairing import DEFAULT, read_config, write_config
 
 spec = importlib.util.spec_from_file_location('navigation_gui', Path(__file__).resolve().parents[1] / 'dishwasher_gui.py')
 gui = importlib.util.module_from_spec(spec)
@@ -43,6 +46,33 @@ class NavigationTests(unittest.TestCase):
         app.poll()
         self.assertTrue(app.online)
         self.assertEqual(app.snapshot['power'],False)
+
+    def test_recovery_persists_only_current_generation_and_preserves_manual_edit(self):
+        app = self.app
+        settings = app.device_settings
+        old = dict(DEFAULT, device_id=123456, ip_address='192.0.2.7',
+                   token='ab' * 64, key='cd' * 32)
+        with tempfile.TemporaryDirectory() as directory:
+            settings.config_path = Path(directory) / 'dishwasher.json'
+            app.config = old
+            write_config(settings.config_path, old)
+            settings.ip.set('192.0.2.88')
+            self.root.after_cancel(app.poll_id)
+            app.events.put(('recovered_address', ('192.0.2.99', 6445), app.config_generation - 1))
+            app.poll()
+            self.assertEqual(read_config(settings.config_path), old)
+            self.root.after_cancel(app.poll_id)
+            app.events.put(('recovered_address', ('192.0.2.19', 6445), app.config_generation))
+            app.poll()
+            updated = dict(old, ip_address='192.0.2.19', port=6445)
+            self.assertEqual(read_config(settings.config_path), updated)
+            self.assertEqual(app.config, updated)
+            self.assertEqual(settings.ip.get(), '192.0.2.88')
+            with patch('dishwasher_settings.pairing.write_config', side_effect=OSError):
+                settings.recovered_address('192.0.2.25', 6444)
+            self.assertEqual(app.config['ip_address'], '192.0.2.25')
+            self.assertEqual(read_config(settings.config_path), updated)
+            self.assertIn('未能保存', settings.status.get())
 
     def test_default_home_and_gear_subpages(self):
         app = self.app
